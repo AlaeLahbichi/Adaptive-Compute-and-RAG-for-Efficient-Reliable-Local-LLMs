@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# LaTeX (fichiers intermédiaires)
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.synctex.gz
+
+# Journaux locaux
+resume/zotero_log.txt
+
+# Documents de cadrage non publiés
+Cahier_des_charges_*.pdf

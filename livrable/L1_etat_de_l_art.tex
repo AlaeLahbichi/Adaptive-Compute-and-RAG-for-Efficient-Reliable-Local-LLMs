@@ -1,0 +1,481 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{pifont}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,linkcolor=teal!70!black,citecolor=teal!70!black,urlcolor=teal!70!black]{hyperref}
+
+\newcommand{\oui}{\textcolor{teal!70!black}{\ding{51}}}
+\newcommand{\non}{\textcolor{red!60!black}{\ding{55}}}
+\newcommand{\partiel}{$\sim$}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\setlist{itemsep=2pt,topsep=4pt}
+
+\title{\textbf{Livrable L1 -- État de l'art}\\[4pt]
+\large Allocation adaptative des ressources de calcul et de recherche documentaire\\ pour des systèmes LLM locaux, économes et fiables\\[2pt]
+\normalsize\textit{Adaptive Compute and Retrieval Allocation for Energy-Efficient and Reliable Local LLM Systems}}
+\author{Alae Lahbichi -- Étudiant en 5\textsuperscript{e} année IA/Data\\[2pt]
+\small\href{mailto:a.lahbichi2004@gmail.com}{\texttt{a.lahbichi2004@gmail.com}}\\
+\small Dépôt GitHub : \href{https://github.com/AlaeLahbichi/Adaptive-Compute-and-RAG-for-Efficient-Reliable-Local-LLMs}{\footnotesize\texttt{AlaeLahbichi/Adaptive-Compute-and-RAG-for-Efficient-Reliable-Local-LLMs}}}
+\date{Version de travail v0.1 -- 17 octobre 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\fcolorbox{teal!60!black}{teal!5}{\parbox{0.92\textwidth}{\small
+\textbf{Statut du document.} Cette version a été rédigée à partir des métadonnées et des résumés
+des articles recensés ; les lectures approfondies (passes 2 et 3) restent à faire. Les affirmations
+sur le contenu des articles doivent être vérifiées dans les textes complets avant toute réutilisation
+dans un article. Le positionnement proposé (section~\ref{sec:positionnement}) est une
+\emph{hypothèse de nouveauté} à confirmer par la lecture complète des travaux les plus proches, et
+non une nouveauté établie.}}
+\end{center}
+
+\begin{abstract}
+\noindent Les systèmes fondés sur des grands modèles de langage (LLM) traitent généralement toutes les
+requêtes avec la même configuration : un même modèle et, le cas échéant, une recherche documentaire (RAG)
+identique. Cette uniformité gaspille des ressources sur les questions simples et peut dégrader la
+fiabilité sur les questions difficiles ou non couvertes par les documents. Ce document recense
+51 travaux, dont 46 retenus, répartis en cinq axes : le routage et les cascades de modèles, le RAG
+adaptatif, l'estimation d'incertitude et l'abstention, la mesure du coût énergétique de l'inférence,
+et les jeux d'évaluation. L'analyse montre que ces trois décisions -- \emph{quel modèle},
+\emph{faut-il chercher et combien}, \emph{faut-il répondre} -- sont le plus souvent étudiées
+séparément, et que le coût est majoritairement exprimé en prix d'API ou en nombre d'appels plutôt
+qu'en latence, mémoire ou énergie mesurées sur du matériel local. Nous en déduisons un positionnement
+possible : une politique de décision \emph{conjointe} et interprétable, évaluée sur machine locale.
+Des travaux de 2026 réduisent toutefois cet écart, ce qui impose de délimiter précisément la
+contribution.
+\end{abstract}
+
+\clearpage
+\tableofcontents
+\clearpage
+
+%======================================================================
+\section{Introduction}
+%======================================================================
+
+\paragraph{Contexte.} Exécuter un LLM localement présente deux avantages : les données restent sur la
+machine et le coût est maîtrisé. Les ressources d'un ordinateur personnel sont en revanche limitées en
+mémoire, en temps de calcul et en énergie. Or toutes les questions ne demandent pas le même effort :
+certaines sont triviales pour un petit modèle, d'autres exigent un modèle plus puissant, des documents
+externes, voire un refus de répondre lorsque les preuves manquent.
+
+\paragraph{Problématique.} \emph{Comment allouer automatiquement, et de manière mesurable, les ressources
+de calcul et de recherche documentaire à chaque requête, afin de réduire le coût d'un système LLM local
+sans dégrader significativement la qualité, la factualité et la fiabilité des réponses ?}
+
+\paragraph{Objectifs de cette revue.} Elle doit (i) recenser les approches existantes pour chacune des
+décisions d'allocation, (ii) identifier les signaux utilisés pour décider, (iii) examiner comment le coût
+et la fiabilité sont évalués, et (iv) en déduire ce qui distinguerait réellement la méthode envisagée.
+Le tableau~\ref{tab:qr} rattache chaque axe aux questions de recherche du cahier des charges.
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{l Y l}
+\toprule
+\textbf{QR} & \textbf{Question} & \textbf{Axes de la revue} \\
+\midrule
+QR1 & Peut-on estimer la difficulté d'une question avant de choisir le modèle ou de lancer le RAG ? & §\ref{sec:routage}, §\ref{sec:rag} \\
+QR2 & Des signaux d'incertitude et de qualité des preuves permettent-ils de décider quand chercher davantage ou s'abstenir ? & §\ref{sec:rag}, §\ref{sec:incertitude} \\
+QR3 & Quel compromis qualité / latence / mémoire / énergie par rapport à des stratégies fixes ? & §\ref{sec:energie} \\
+QR4 & Les gains sont-ils stables selon les types de questions et de documents ? & §\ref{sec:benchmarks} \\
+\bottomrule
+\end{tabularx}
+\caption{Correspondance entre les questions de recherche et les axes de la revue.}
+\label{tab:qr}
+\end{table}
+
+\paragraph{Plan.} La section~\ref{sec:methode} décrit la méthode de recherche bibliographique, la
+section~\ref{sec:notions} définit les notions de base, et les sections~\ref{sec:routage}
+à~\ref{sec:benchmarks} présentent chaque axe. La section~\ref{sec:comparaison} propose un tableau
+comparatif, puis la section~\ref{sec:positionnement} identifie le manque et formule la contribution
+potentielle. La section~\ref{sec:limites} précise les limites de cette revue.
+
+%======================================================================
+\section{Méthode de recherche bibliographique}\label{sec:methode}
+%======================================================================
+
+\paragraph{Sources.} arXiv, ACL Anthology, OpenReview, Google Scholar, Semantic Scholar et les actes
+(proceedings) de NeurIPS, ICLR, AAAI et MLSys. Les références sont gérées dans Zotero.
+
+\paragraph{Requêtes.} Elles combinent les concepts du sujet et leurs synonymes : \textit{LLM routing},
+\textit{model cascade}, \textit{adaptive retrieval}, \textit{adaptive RAG}, \textit{dynamic RAG},
+\textit{uncertainty estimation}, \textit{selective prediction}, \textit{abstention},
+\textit{energy-aware LLM inference}. Une recherche ciblée sur arXiv (6 requêtes croisées, menée le
+17/10/2026, détaillée en annexe~\ref{ann:requetes}) a servi à repérer les travaux de 2025--2026 qui
+combinent plusieurs de ces décisions.
+
+\paragraph{Critères d'inclusion.} (i) La méthode adapte, requête par requête, le choix du modèle, la
+récupération documentaire ou la décision de répondre ; (ii) elle s'accompagne d'une évaluation
+expérimentale ; ou (iii) l'article fournit une mesure du coût d'inférence ou un jeu de données utile
+au protocole.
+
+\paragraph{Critères d'exclusion.} Optimisation d'infrastructure cloud, architectures matérielles,
+articles de position sans expérience et systèmes multi-agents hors du cadre questions-réponses.
+
+\paragraph{Processus de sélection.}
+\begin{itemize}
+\item 17 références initiales, issues du cahier des charges et d'une première recherche ;
+\item 26 références ajoutées par recherche ciblée et par \textit{snowballing}, c'est-à-dire en
+suivant les références citées et citantes ;
+\item 46 résultats arXiv examinés sur titre lors de la recherche croisée, dont 8 retenus après lecture
+du résumé ;
+\item soit \textbf{51 références identifiées}, dont \textbf{5 exclues} (hors périmètre) et
+\textbf{46 retenues}, classées par thème et par priorité de lecture (P1 à P3).
+\end{itemize}
+
+%======================================================================
+\section{Notions de base}\label{sec:notions}
+%======================================================================
+
+\begin{description}[style=nextline,leftmargin=0.5cm]
+\item[Routage (\textit{routing})] Choix, avant la génération, du modèle qui traitera une requête parmi
+plusieurs candidats de tailles ou de coûts différents.
+\item[Cascade] Variante séquentielle du routage : on interroge d'abord un modèle peu coûteux, puis on
+escalade vers un modèle plus puissant si sa réponse semble peu fiable. Le coût du premier modèle est
+toujours payé.
+\item[RAG] Génération augmentée par récupération : des passages extraits d'une base documentaire sont
+ajoutés au prompt. Le RAG \emph{adaptatif} décide si, quand et combien récupérer.
+\item[Incertitude] Estimation de la probabilité qu'une réponse soit incorrecte : probabilités internes,
+cohérence entre plusieurs réponses échantillonnées, ou confiance exprimée par le modèle.
+\item[Abstention] Refus de répondre lorsque le risque d'erreur est jugé trop élevé. On l'évalue par le
+compromis \emph{couverture / risque} : la part de questions auxquelles le système répond, et le taux
+d'erreur parmi ces réponses.
+\item[Coût] Selon les travaux : prix d'API, nombre d'appels au grand modèle, nombre de tokens, latence,
+mémoire ou énergie mesurée. Ces mesures ne sont pas interchangeables.
+\end{description}
+
+%======================================================================
+\section{Routage et cascades de modèles}\label{sec:routage}
+%======================================================================
+
+\paragraph{Cascades.} \citet{chen2023frugalgpt} distinguent trois leviers pour réduire le coût des LLM :
+l'adaptation du prompt, l'approximation du LLM et la cascade. Leur instanciation, FrugalGPT, apprend
+quelles combinaisons de modèles utiliser selon la requête, et rapporte jusqu'à 98\,\% d'économie à
+performance égale à celle du meilleur modèle individuel. AutoMix \citep{aggarwal2023automix} escalade
+vers un modèle plus grand selon une auto-vérification \textit{few-shot} de la réponse du petit modèle ;
+comme cette auto-vérification est bruitée, la décision est confiée à un routeur fondé sur un processus
+de décision markovien partiellement observable (POMDP), avec plus de 50\,\% d'économie à performance
+comparable. \citet{yue2023cascades} utilisent comme signal de difficulté la \emph{cohérence} entre
+plusieurs réponses du petit modèle et atteignent la performance du modèle fort pour 40\,\% de son coût.
+
+\paragraph{Routage avant génération.} Hybrid LLM \citep{ding2024hybrid} prédit la difficulté de la
+requête pour l'attribuer à un petit modèle (déployable en périphérie, dit \textit{edge}) ou à un grand
+modèle. Un seuil de qualité réglable à l'inférence permet d'éviter jusqu'à 40\,\% des appels au grand
+modèle sans baisse de qualité. RouteLLM \citep{ong2024routellm} entraîne des routeurs fort/faible à
+partir de données de préférences humaines. Le coût est réduit de plus de moitié dans certains cas, et
+les routeurs restent efficaces lorsque la paire de modèles change. D'autres formulations existent : le
+bandit manchot \citep{nguyen2024metallm} ou le routage vers le modèle expert guidé par un modèle de
+récompense \citep{lu2023zooter}. RouterBench \citep{hu2024routerbench} propose un cadre d'évaluation
+standardisé et un corpus de plus de 405\,000 résultats d'inférence.
+
+\paragraph{Travaux récents.} \citet{fu2026inflation} montrent qu'un routage fondé sur le coût d'un
+appel unique sous-estime le coût réel d'un workflow qui relance les requêtes, jusqu'à un facteur
+supérieur à 2 sur les tâches difficiles. Ils introduisent un signal de difficulté calculé
+\emph{localement avant exécution} et sélectionnent le modèle selon le rapport entre précision attendue
+et coût réel prédit. RACER \citep{hao2026racer} étend un routeur pour produire des \emph{ensembles} de
+modèles, avec un seuil calibré qui autorise l'abstention et contrôle le risque d'erreur de routage
+(garanties sans hypothèse sur la distribution des données). La revue de \citet{varangot2025survey}
+synthétise le domaine et souligne deux limites : la standardisation insuffisante des expériences et la
+faible prise en compte des coûts non financiers.
+
+\paragraph{Bilan.} Ces travaux choisissent \emph{le modèle}, mais ne décident ni de la récupération
+documentaire ni, à l'exception de RACER, de l'abstention. Le coût y est surtout exprimé en prix d'API
+ou en nombre d'appels.
+
+%======================================================================
+\section{RAG adaptatif}\label{sec:rag}
+%======================================================================
+
+\paragraph{Quand récupérer ?} \citet{mallen2022trust} montrent que les LLM retiennent mal les
+connaissances peu populaires. Récupérer \emph{uniquement lorsque c'est nécessaire} améliore alors à la
+fois la précision et le coût. Les approches suivantes diffèrent par le signal de décision :
+\begin{itemize}
+\item la connaissance que le modèle a de lui-même, estimée par comparaison avec des questions déjà
+traitées (SKR, \citealp{wang2023skr}) ;
+\item la confiance des tokens générés, pour déclencher la récupération en cours de génération (FLARE,
+\citealp{jiang2023flare}) ;
+\item une estimation du besoin d'information en temps réel (DRAGIN, \citealp{su2024dragin}) ;
+\item des tokens de réflexion appris par le modèle, ce qui suppose un entraînement spécifique
+(Self-RAG, \citealp{asai2023selfrag}).
+\end{itemize}
+
+\paragraph{Selon la complexité de la question.} Adaptive-RAG \citep{jeong2024adaptiverag} entraîne un
+petit classifieur qui prédit la complexité d'une requête pour choisir entre trois stratégies : pas de
+récupération, récupération en une étape, ou récupération itérative. Le système gagne à la fois en
+efficacité et en précision sur des jeux de questions simples et multi-étapes. C'est la référence la
+plus directe pour QR1, et son code est public. HyPA-RAG \citep{kalra2024hyparag} applique la même
+idée aux paramètres de récupération dans le domaine juridique.
+
+\paragraph{Selon la qualité des preuves.} Corrective RAG \citep{yan2024crag} évalue la qualité des
+documents récupérés avec un évaluateur léger, puis déclenche une action selon le résultat : utiliser les
+documents, les compléter par une recherche web, ou les filtrer. Tiny-Critic RAG \citep{wu2026tinycritic}
+confie ce rôle de contrôle à un petit modèle adapté par LoRA (adaptation à faible rang), avec une latence
+réduite d'un ordre de grandeur par rapport à un grand évaluateur.
+
+\paragraph{Incertitude contre pipelines complexes.} \citet{moskvoretskii2025adaptive} comparent
+35 méthodes (8 méthodes de récupération adaptative et 27 estimateurs d'incertitude) sur 6 jeux de
+données et 10 métriques. Les estimateurs d'incertitude simples font souvent mieux que les pipelines
+complexes en efficacité, pour une qualité comparable. Ce résultat justifie de privilégier des
+\emph{signaux simples et interprétables}. Self-Routing RAG \citep{wu2025srrag} généralise la décision
+binaire « récupérer ou non » en un choix de \emph{source de connaissance}, dans lequel le LLM lui-même
+est une source. Avec des modèles de taille 7B, il réduit de 21 à 40\,\% le nombre de récupérations.
+
+\paragraph{Routage entre paradigmes de RAG.} RAGRouter-Bench \citep{wang2026ragrouterbench} formule le
+choix d'un paradigme de RAG comme un problème de routage dépendant de la paire requête--corpus. Il
+évalue conjointement la qualité et la consommation de ressources avec plusieurs LLM, et conclut
+qu'aucun paradigme n'est optimal partout. Sur ce benchmark, un simple classifieur TF-IDF + SVM simule
+28\,\% d'économie de tokens \citep{bansal2026lightweight}. Pre-Route \citep{chen2026preroute} choisit de
+façon analogue entre RAG et contexte long.
+
+\paragraph{Réduire le contexte.} LeanContext \citep{arefeen2024leancontext} réduit le contexte récupéré
+aux phrases clés : le coût baisse de 37 à 68\,\% pour une perte de 1,4 à 2,7\,\% de ROUGE-1. Ce
+compromis chiffré est du même ordre que le critère de succès du projet. Clustered RAG
+\citep{akesson2024clustered} et LogicRAG \citep{chen2026logicrag} réduisent eux aussi les tokens de
+contexte.
+
+\paragraph{Bilan.} Le RAG adaptatif décide \emph{si et comment récupérer}, généralement avec \emph{un
+seul modèle générateur}. L'abstention y est rarement une sortie explicite, et le coût y est le plus
+souvent mesuré en nombre de récupérations ou d'appels.
+
+%======================================================================
+\section{Estimation d'incertitude et abstention}\label{sec:incertitude}
+%======================================================================
+
+\paragraph{Estimer l'incertitude.} Trois familles de signaux se distinguent.
+\begin{itemize}
+\item \emph{Probabilités internes.} \citet{kadavath2022know} montrent que les grands modèles sont
+souvent bien calibrés lorsqu'on leur demande d'évaluer leurs propres réponses (P(True)). La probabilité
+« je connais la réponse », P(IK), augmente en présence de sources pertinentes, ce qui en fait un signal
+candidat pour décider de récupérer.
+\item \emph{Cohérence entre plusieurs échantillons.} L'entropie sémantique \citep{kuhn2023semantic}
+regroupe les réponses échantillonnées qui ont le même sens ; SelfCheckGPT \citep{manakul2023selfcheckgpt}
+détecte les hallucinations par contradiction entre échantillons. Ces signaux sont efficaces mais
+exigent \emph{plusieurs générations} par question.
+\item \emph{Confiance verbalisée.} Le modèle exprime sa propre confiance en mots ; elle n'est calibrée
+qu'après un apprentissage dédié \citep{lin2022verbal}.
+\end{itemize}
+
+\paragraph{S'abstenir.} \citet{kamath2020selective} formalisent la réponse sélective sous changement de
+domaine. Les probabilités \textit{softmax} sont trop confiantes hors domaine, alors qu'un calibrateur
+appris améliore nettement la couverture à précision fixée. La revue de \citet{wen2024abstention}
+organise les méthodes, benchmarks et métriques d'abstention selon trois perspectives : la requête, le
+modèle et les valeurs humaines.
+
+\paragraph{Bilan.} Le coût de l'estimation d'incertitude elle-même est rarement intégré à la décision.
+Pourtant, échantillonner plusieurs réponses avec un petit modèle peut coûter plus cher qu'un appel
+direct à un modèle plus grand. Ce point concerne directement QR2 et QR3.
+
+%======================================================================
+\section{Coût, efficacité et énergie de l'inférence}\label{sec:energie}
+%======================================================================
+
+\citet{samsi2023watts} mesurent l'énergie de l'inférence de LLaMA selon la taille du modèle, sur des
+GPU de centre de données (V100, A100). \citet{luccioni2022bloom} estiment l'empreinte carbone de BLOOM
+sur l'ensemble de son cycle de vie, et \citet{luccioni2024power} comparent le coût énergétique de
+l'inférence de nombreux modèles et tâches : les modèles génératifs généralistes s'y révèlent beaucoup
+plus coûteux que les modèles spécialisés.
+
+\paragraph{Bilan.} Ces travaux \emph{mesurent} l'énergie mais ne l'\emph{optimisent} pas par des
+décisions prises requête par requête. Ils portent en outre sur du matériel de centre de données.
+Inversement, les travaux de routage optimisent un coût qui n'est presque jamais énergétique. Le cahier
+des charges impose une précaution que la littérature confirme : ne pas déduire une énergie exacte du
+seul temps CPU, et rapporter séparément les indicateurs indirects (latence, tokens, mémoire).
+
+%======================================================================
+\section{Jeux de données et protocoles d'évaluation}\label{sec:benchmarks}
+%======================================================================
+
+Les jeux de données recensés couvrent les catégories de questions demandées par le cahier des charges
+(tableau~\ref{tab:data}).
+
+\begin{table}[h]
+\centering\small
+\begin{tabularx}{\textwidth}{l Y}
+\toprule
+\textbf{Catégorie} & \textbf{Jeux de données} \\
+\midrule
+Simple & SQuAD (questions avec réponse) \citep{rajpurkar2018squad2} \\
+Complexe / multi-étapes & HotpotQA, avec phrases justificatives \citep{yang2018hotpotqa} ; MuSiQue \citep{trivedi2022musique} \\
+Non couverte par les documents & SQuAD 2.0 \citep{rajpurkar2018squad2} ; MuSiQue-Full (questions sans réponse) \\
+Types variés, hallucinations pénalisées & CRAG Benchmark \citep{yang2024cragbench} \\
+Routage entre paradigmes de RAG & RAGRouter-Bench \citep{wang2026ragrouterbench} \\
+\bottomrule
+\end{tabularx}
+\caption{Jeux de données utilisables pour le benchmark du projet (Phase 2).}
+\label{tab:data}
+\end{table}
+
+\paragraph{Leçons méthodologiques.} (i) \citet{li2026beyond} montrent que des signaux issus de la
+récupération, pourtant corrélés à l'utilité d'une étape supplémentaire, n'améliorent pas de façon
+fiable un routeur fondé sur la seule requête. Tout signal ajouté doit donc être comparé à un
+\emph{contrôle « requête seule »} apparié. (ii) RouterBench et RAGRouter-Bench évaluent la qualité et le
+coût conjointement, sous forme de compromis, plutôt qu'avec une seule métrique. (iii) Adaptive-RAG
+s'évalue sur SQuAD, HotpotQA et MuSiQue : réutiliser ces jeux permet une comparaison directe.
+
+%======================================================================
+\section{Tableau comparatif}\label{sec:comparaison}
+%======================================================================
+
+Le tableau~\ref{tab:comparaison} situe les travaux les plus proches selon les trois décisions
+d'allocation, le signal utilisé, la nature du coût évalué et le cadre d'exécution.
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabularx}{\textwidth}{l C{1.25cm} C{1.25cm} C{1.35cm} Y Y C{0.95cm}}
+\toprule
+\textbf{Travail} & \textbf{Choix du modèle} & \textbf{Décision RAG} & \textbf{Abs\-ten\-tion} & \textbf{Signal de décision} & \textbf{Coût évalué} & \textbf{Local} \\
+\midrule
+FrugalGPT \citeyearpar{chen2023frugalgpt} & \oui & \non & \non & Scoreur appris (après génération) & Prix API & \non \\
+Hybrid LLM \citeyearpar{ding2024hybrid} & \oui & \non & \non & Difficulté prédite (avant) & Appels au grand modèle & \partiel \\
+RouteLLM \citeyearpar{ong2024routellm} & \oui & \non & \non & Préférences humaines & Prix / appels & \non \\
+AutoMix \citeyearpar{aggarwal2023automix} & \oui & \non & \non & Auto-vérification (après) & Calcul & \non \\
+Fu et al. \citeyearpar{fu2026inflation} & \oui & \non & \non & Entropie de branchement (avant, locale) & Tokens réels & \partiel \\
+RACER \citeyearpar{hao2026racer} & \oui & \non & \oui & Score calibré & Taille d'ensemble & \non \\
+\midrule
+Mallen et al. \citeyearpar{mallen2022trust} & \non & \oui & \non & Popularité de l'entité & Inférence & \non \\
+Adaptive-RAG \citeyearpar{jeong2024adaptiverag} & \non & \oui & \non & Complexité (classifieur) & Temps, étapes & \non \\
+Corrective RAG \citeyearpar{yan2024crag} & \non & \oui & \non & Qualité des documents & -- & \non \\
+Moskvoretskii et al. \citeyearpar{moskvoretskii2025adaptive} & \non & \oui & \non & Incertitude (27 méthodes) & Appels, récupérations & \non \\
+SR-RAG \citeyearpar{wu2025srrag} & \non & \oui & \non & Incertitude + mémoire de politiques & Récupérations, latence & \partiel \\
+RAGRouter-Bench \citeyearpar{wang2026ragrouterbench} & \partiel & \oui & \non & Compatibilité requête--corpus & Ressources & \non \\
+\midrule
+Kamath et al. \citeyearpar{kamath2020selective} & \non & \non & \oui & Calibrateur appris & -- & \non \\
+Samsi et al. \citeyearpar{samsi2023watts} & \non & \non & \non & (mesure seulement) & Énergie GPU & \non \\
+\midrule
+\textbf{Projet visé} & \oui & \oui & \oui & \textbf{Signaux peu coûteux, coût du signal compté} & \textbf{Latence, mémoire, énergie} & \oui \\
+\bottomrule
+\end{tabularx}
+\caption{Positionnement des travaux les plus proches. \oui{} : traité ; \non{} : non traité ;
+\partiel{} : partiellement (par exemple des modèles 7B exécutables localement, sans évaluation en
+contexte local). Grille établie à partir des résumés, à confirmer à la lecture.}
+\label{tab:comparaison}
+\end{table}
+
+%======================================================================
+\section{Synthèse et positionnement}\label{sec:positionnement}
+%======================================================================
+
+\subsection{Limites communes des travaux existants}
+\begin{enumerate}
+\item \textbf{Des décisions isolées.} Le routage choisit le modèle, le RAG adaptatif choisit la
+récupération et l'abstention est étudiée à part. Aucun des travaux recensés ne choisit
+\emph{conjointement} les trois dans une même politique (tableau~\ref{tab:comparaison}).
+\item \textbf{Un coût surtout financier.} Le coût est surtout exprimé en prix d'API ou en nombre
+d'appels ; la latence, la mémoire et l'énergie mesurées sur machine locale sont rarement rapportées,
+une limite que souligne aussi \citet{varangot2025survey}.
+\item \textbf{Le coût du signal est ignoré.} Les signaux d'incertitude les plus performants exigent
+plusieurs générations, et leur coût est rarement retranché du gain.
+\item \textbf{Une évaluation parfois optimiste.} Certains gains disparaissent face à un contrôle
+« requête seule » \citep{li2026beyond}, et une moyenne globale peut masquer des dégradations sur les
+questions difficiles.
+\end{enumerate}
+
+\subsection{Contribution potentielle}
+\begin{center}
+\fcolorbox{teal!60!black}{teal!5}{\parbox{0.92\textwidth}{
+Concevoir et évaluer une \textbf{politique de décision conjointe et interprétable} qui choisit, pour
+chaque requête, \textbf{la taille du modèle}, \textbf{le niveau de récupération documentaire} (aucune,
+simple, complémentaire) et \textbf{la décision de répondre ou de s'abstenir}. Cette politique s'appuie
+sur des signaux peu coûteux \textbf{dont le coût est lui-même comptabilisé}, et elle est évaluée
+\textbf{sur du matériel local} en qualité, factualité, couverture/risque, latence, mémoire et, si
+mesurable, énergie.}}
+\end{center}
+
+\subsection{Hypothèses de travail}
+\begin{description}[style=nextline,leftmargin=0.5cm]
+\item[H1 (QR1)] Un signal de difficulté calculé avant génération et à faible coût suffit à orienter une
+part significative des requêtes vers le petit modèle, sans RAG, sans perte de qualité au-delà de la
+marge fixée.
+\item[H2 (QR2)] Combiner un signal d'incertitude du modèle et un score de suffisance des preuves
+améliore le compromis couverture/risque par rapport à chacun des deux signaux pris séparément.
+\item[H3 (QR3)] La politique conjointe domine les stratégies fixes sur la courbe qualité--coût
+(latence, tokens et mémoire), une fois le coût de ses propres signaux inclus.
+\item[H4 (QR4)] Les gains varient selon la catégorie de question ; ils seront rapportés par catégorie,
+pas seulement en moyenne.
+\end{description}
+
+\subsection{Travaux dont il faut se distinguer explicitement}
+\begin{center}\small
+\begin{tabularx}{\textwidth}{l Y Y}
+\toprule
+\textbf{Travail} & \textbf{Ce qu'il fait déjà} & \textbf{Ce qui reste ouvert} \\
+\midrule
+Adaptive-RAG & Complexité $\rightarrow$ stratégie de RAG & Choix du modèle, abstention, mesure locale \\
+Moskvoretskii et al. & Signaux d'incertitude simples pour décider du RAG & Plusieurs tailles de modèle, abstention, énergie \\
+RAGRouter-Bench & Routage entre paradigmes de RAG avec coût en ressources & Abstention, matériel local, politique conjointe modèle $\times$ RAG \\
+Fu et al. (2026) & Signal local avant exécution, coût réel & RAG adaptatif, abstention \\
+RACER & Routage avec abstention calibrée & RAG, coût local \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Conséquences pour les phases suivantes}
+\begin{itemize}
+\item \textbf{Benchmark (Phase 2).} Reprendre SQuAD/SQuAD 2.0, HotpotQA et MuSiQue pour pouvoir se
+comparer à Adaptive-RAG ; étudier l'intérêt de RAGRouter-Bench.
+\item \textbf{Baselines (Phase 3).} En plus des baselines A, B et C du cahier des charges, ajouter
+Adaptive-RAG (code public), un routeur fondé sur la seule requête (contrôle de \citealp{li2026beyond}),
+et si possible un seuil d'incertitude simple (dans l'esprit de \citealp{moskvoretskii2025adaptive}).
+\item \textbf{Métriques (Phase 2).} Courbes qualité--coût ; couverture/risque pour l'abstention ;
+résultats par catégorie ; coût des signaux inclus dans le coût total.
+\end{itemize}
+
+%======================================================================
+\section{Limites de cette revue et prochaines étapes}\label{sec:limites}
+%======================================================================
+
+\begin{itemize}
+\item \textbf{Pré-analyse.} L'analyse repose sur les résumés ; les cellules du
+tableau~\ref{tab:comparaison} et les limites attribuées aux travaux doivent être confirmées par la
+lecture complète.
+\item \textbf{Couverture.} La recherche croisée a porté surtout sur arXiv ; elle doit être complétée par
+ACL Anthology, Semantic Scholar et le \textit{snowballing} à partir de RAGRouter-Bench, SR-RAG et RACER.
+\item \textbf{Prépublications.} Plusieurs travaux de 2025--2026 ne sont pas encore évalués par les pairs
+et peuvent évoluer.
+\item \textbf{Un domaine très actif.} Une veille (alertes de citation) est nécessaire jusqu'à la
+soumission ; le positionnement devra être revérifié juste avant.
+\end{itemize}
+
+\paragraph{Prochaines étapes.} (1) Lecture approfondie des travaux P1 et des cinq travaux du tableau de
+distinction ; (2) mise à jour de cette revue (v0.2) ; (3) consolidation de la formulation de la
+contribution, idéalement après relecture par un enseignant-chercheur ; (4) passage à la Phase 2 (benchmark et protocole).
+
+\appendix
+\section{Requêtes de recherche croisée (arXiv, 17/10/2026)}\label{ann:requetes}
+\begin{center}\small
+\begin{tabularx}{\textwidth}{Y c}
+\toprule
+\textbf{Requête (champ résumé / titre)} & \textbf{Résultats examinés} \\
+\midrule
+\texttt{abs:routing AND abs:retrieval AND abs:small AND abs:large AND abs:LLM} & 12 \\
+\texttt{abs:"adaptive retrieval" AND abs:"model selection"} & 0 \\
+\texttt{ti:RAG AND ti:rout*} & 12 \\
+\texttt{abs:"retrieval-aware" AND abs:routing} & 1 \\
+\texttt{abs:abstention AND abs:routing AND abs:LLM} & 12 \\
+\texttt{abs:energy AND abs:routing AND abs:"retrieval-augmented"} & 9 \\
+\midrule
+\textbf{Total examiné sur titre / retenus après résumé} & \textbf{46 / 8} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
