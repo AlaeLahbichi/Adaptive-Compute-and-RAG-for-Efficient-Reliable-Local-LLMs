@@ -1,0 +1,464 @@
+{
+  "contrainte": "latence moyenne ≤ 0.78 × latence de B",
+  "politique": {
+    "parametres": {
+      "cascade": false,
+      "conf_petit": "conf_moy",
+      "seuil_petit": 2.0,
+      "seuil_preuve": 0.286,
+      "conf_grand": "conf_min",
+      "seuil_abstention": 0.4,
+      "seuil_preuve_abstention": 0.2651
+    },
+    "score_global": 0.5518,
+    "ic95": [
+      0.4801,
+      0.6201
+    ],
+    "ecart_vs_B_points": 1.09,
+    "ecart_vs_B_ic95_points": [
+      -4.28,
+      6.41
+    ],
+    "latence_moyenne_s": 0.713,
+    "latence_p95_s": 1.4784,
+    "reduction_latence_vs_B": 0.229,
+    "tokens_moyens": 418.0,
+    "couverture": 0.4833,
+    "risque": 0.3448,
+    "par_categorie": {
+      "complexe": 0.3172,
+      "non_couverte": 0.8,
+      "simple": 0.5383
+    },
+    "choix": {
+      "abstention_precoce": 45,
+      "petit_k3": 0,
+      "grand_k3": 126,
+      "grand_k6": 9
+    },
+    "abstentions_decidees": 93
+  },
+  "validation_croisee": {
+    "score_global": 0.5199,
+    "ic95": [
+      0.4485,
+      0.5892
+    ],
+    "ecart_vs_B_points": -2.1,
+    "ecart_vs_B_ic95_points": [
+      -8.18,
+      3.8
+    ],
+    "latence_moyenne_s": 0.7211,
+    "latence_p95_s": 1.6806,
+    "reduction_latence_vs_B": 0.2202,
+    "tokens_moyens": 424.1,
+    "couverture": 0.4444,
+    "risque": 0.35,
+    "par_categorie": {
+      "complexe": 0.3156,
+      "non_couverte": 0.7833,
+      "simple": 0.4607
+    },
+    "choix": {
+      "abstention_precoce": 48,
+      "petit_k3": 0,
+      "grand_k3": 118,
+      "grand_k6": 14
+    },
+    "abstentions_decidees": 100
+  },
+  "ablations": {
+    "sans_cascade": {
+      "parametres": {
+        "cascade": false,
+        "conf_petit": "conf_moy",
+        "seuil_petit": 2.0,
+        "seuil_preuve": 0.286,
+        "conf_grand": "conf_min",
+        "seuil_abstention": 0.4,
+        "seuil_preuve_abstention": 0.2651
+      },
+      "score_global": 0.5518,
+      "ic95": [
+        0.4801,
+        0.6201
+      ],
+      "ecart_vs_B_points": 1.09,
+      "ecart_vs_B_ic95_points": [
+        -4.28,
+        6.41
+      ],
+      "latence_moyenne_s": 0.713,
+      "latence_p95_s": 1.4784,
+      "reduction_latence_vs_B": 0.229,
+      "tokens_moyens": 418.0,
+      "couverture": 0.4833,
+      "risque": 0.3448,
+      "par_categorie": {
+        "complexe": 0.3172,
+        "non_couverte": 0.8,
+        "simple": 0.5383
+      },
+      "choix": {
+        "abstention_precoce": 45,
+        "petit_k3": 0,
+        "grand_k3": 126,
+        "grand_k6": 9
+      },
+      "abstentions_decidees": 93
+    },
+    "sans_abstention_precoce": {
+      "parametres": {
+        "cascade": true,
+        "conf_petit": "conf_moy",
+        "seuil_petit": 0.775,
+        "seuil_preuve": -1.0,
+        "conf_grand": "conf_min",
+        "seuil_abstention": 0.55,
+        "seuil_preuve_abstention": -1.0
+      },
+      "score_global": 0.3954,
+      "ic95": [
+        0.3301,
+        0.4632
+      ],
+      "ecart_vs_B_points": -14.55,
+      "ecart_vs_B_ic95_points": [
+        -20.31,
+        -8.94
+      ],
+      "latence_moyenne_s": 0.7046,
+      "latence_p95_s": 1.5624,
+      "reduction_latence_vs_B": 0.238,
+      "tokens_moyens": 756.8,
+      "couverture": 0.7722,
+      "risque": 0.6259,
+      "par_categorie": {
+        "complexe": 0.2954,
+        "non_couverte": 0.35,
+        "simple": 0.5409
+      },
+      "choix": {
+        "abstention_precoce": 0,
+        "petit_k3": 112,
+        "grand_k3": 68,
+        "grand_k6": 0
+      },
+      "abstentions_decidees": 41
+    },
+    "sans_recherche_adaptative": {
+      "parametres": {
+        "cascade": false,
+        "conf_petit": "conf_moy",
+        "seuil_petit": 2.0,
+        "seuil_preuve": -1.0,
+        "conf_grand": "conf_moy",
+        "seuil_abstention": 0.85,
+        "seuil_preuve_abstention": 0.2651
+      },
+      "score_global": 0.5478,
+      "ic95": [
+        0.4759,
+        0.616
+      ],
+      "ecart_vs_B_points": 0.69,
+      "ecart_vs_B_ic95_points": [
+        -4.72,
+        5.93
+      ],
+      "latence_moyenne_s": 0.6779,
+      "latence_p95_s": 1.2619,
+      "reduction_latence_vs_B": 0.2669,
+      "tokens_moyens": 394.8,
+      "couverture": 0.4667,
+      "risque": 0.3333,
+      "par_categorie": {
+        "complexe": 0.3172,
+        "non_couverte": 0.8,
+        "simple": 0.5262
+      },
+      "choix": {
+        "abstention_precoce": 45,
+        "petit_k3": 0,
+        "grand_k3": 135,
+        "grand_k6": 0
+      },
+      "abstentions_decidees": 96
+    },
+    "sans_abstention_finale": {
+      "parametres": {
+        "cascade": false,
+        "conf_petit": "conf_moy",
+        "seuil_petit": 2.0,
+        "seuil_preuve": 0.286,
+        "conf_grand": "conf_moy",
+        "seuil_abstention": 0.0,
+        "seuil_preuve_abstention": 0.2651
+      },
+      "score_global": 0.5463,
+      "ic95": [
+        0.4747,
+        0.614
+      ],
+      "ecart_vs_B_points": 0.54,
+      "ecart_vs_B_ic95_points": [
+        -5.0,
+        5.94
+      ],
+      "latence_moyenne_s": 0.713,
+      "latence_p95_s": 1.4784,
+      "reduction_latence_vs_B": 0.229,
+      "tokens_moyens": 418.0,
+      "couverture": 0.4889,
+      "risque": 0.3523,
+      "par_categorie": {
+        "complexe": 0.3172,
+        "non_couverte": 0.7833,
+        "simple": 0.5383
+      },
+      "choix": {
+        "abstention_precoce": 45,
+        "petit_k3": 0,
+        "grand_k3": 126,
+        "grand_k6": 9
+      },
+      "abstentions_decidees": 92
+    },
+    "sans_aucune_abstention": {
+      "parametres": {
+        "cascade": true,
+        "conf_petit": "conf_moy",
+        "seuil_petit": 0.775,
+        "seuil_preuve": -1.0,
+        "conf_grand": "conf_moy",
+        "seuil_abstention": 0.0,
+        "seuil_preuve_abstention": -1.0
+      },
+      "score_global": 0.3885,
+      "ic95": [
+        0.3239,
+        0.4558
+      ],
+      "ecart_vs_B_points": -15.24,
+      "ecart_vs_B_ic95_points": [
+        -20.7,
+        -9.85
+      ],
+      "latence_moyenne_s": 0.7046,
+      "latence_p95_s": 1.5624,
+      "reduction_latence_vs_B": 0.238,
+      "tokens_moyens": 756.8,
+      "couverture": 0.8,
+      "risque": 0.6319,
+      "par_categorie": {
+        "complexe": 0.3037,
+        "non_couverte": 0.3167,
+        "simple": 0.5451
+      },
+      "choix": {
+        "abstention_precoce": 0,
+        "petit_k3": 112,
+        "grand_k3": 68,
+        "grand_k6": 0
+      },
+      "abstentions_decidees": 36
+    }
+  },
+  "references": {
+    "B_grand_rag": {
+      "score_global": 0.5409,
+      "ic95": [
+        0.472,
+        0.6099
+      ],
+      "ecart_vs_B_points": 0.0,
+      "ecart_vs_B_ic95_points": [
+        0.0,
+        0.0
+      ],
+      "latence_moyenne_s": 0.9247,
+      "latence_p95_s": 1.3908,
+      "reduction_latence_vs_B": 0.0,
+      "tokens_moyens": 540.9,
+      "couverture": 0.6222,
+      "risque": 0.3929,
+      "par_categorie": {
+        "complexe": 0.3617,
+        "non_couverte": 0.5833,
+        "simple": 0.6778
+      },
+      "choix": {
+        "abstention_precoce": 0,
+        "petit_k3": 0,
+        "grand_k3": 0,
+        "grand_k6": 0
+      },
+      "abstentions_decidees": 68
+    },
+    "E_grand_rag6": {
+      "score_global": 0.5701,
+      "ic95": [
+        0.5014,
+        0.6375
+      ],
+      "ecart_vs_B_points": 2.92,
+      "ecart_vs_B_ic95_points": [
+        -1.12,
+        7.13
+      ],
+      "latence_moyenne_s": 1.6333,
+      "latence_p95_s": 2.2984,
+      "reduction_latence_vs_B": -0.7663,
+      "tokens_moyens": 1014.1,
+      "couverture": 0.6722,
+      "risque": 0.3967,
+      "par_categorie": {
+        "complexe": 0.4454,
+        "non_couverte": 0.5667,
+        "simple": 0.6983
+      },
+      "choix": {
+        "abstention_precoce": 0,
+        "petit_k3": 0,
+        "grand_k3": 0,
+        "grand_k6": 0
+      },
+      "abstentions_decidees": 59
+    },
+    "D_petit_rag": {
+      "score_global": 0.3301,
+      "ic95": [
+        0.2673,
+        0.3969
+      ],
+      "ecart_vs_B_points": -21.08,
+      "ecart_vs_B_ic95_points": [
+        -27.77,
+        -14.24
+      ],
+      "latence_moyenne_s": 0.3709,
+      "latence_p95_s": 0.5612,
+      "reduction_latence_vs_B": 0.5989,
+      "tokens_moyens": 563.1,
+      "couverture": 0.8333,
+      "risque": 0.6867,
+      "par_categorie": {
+        "complexe": 0.2909,
+        "non_couverte": 0.2167,
+        "simple": 0.4828
+      },
+      "choix": {
+        "abstention_precoce": 0,
+        "petit_k3": 0,
+        "grand_k3": 0,
+        "grand_k6": 0
+      },
+      "abstentions_decidees": 30
+    }
+  },
+  "courbe": [
+    {
+      "latence_moyenne_s": 0.3224,
+      "score_global": 0.3968
+    },
+    {
+      "latence_moyenne_s": 0.3601,
+      "score_global": 0.4079
+    },
+    {
+      "latence_moyenne_s": 0.3986,
+      "score_global": 0.4223
+    },
+    {
+      "latence_moyenne_s": 0.4362,
+      "score_global": 0.4288
+    },
+    {
+      "latence_moyenne_s": 0.4763,
+      "score_global": 0.4459
+    },
+    {
+      "latence_moyenne_s": 0.498,
+      "score_global": 0.4533
+    },
+    {
+      "latence_moyenne_s": 0.5391,
+      "score_global": 0.5052
+    },
+    {
+      "latence_moyenne_s": 0.5774,
+      "score_global": 0.5219
+    },
+    {
+      "latence_moyenne_s": 0.6126,
+      "score_global": 0.5259
+    },
+    {
+      "latence_moyenne_s": 0.632,
+      "score_global": 0.5394
+    },
+    {
+      "latence_moyenne_s": 0.6998,
+      "score_global": 0.5473
+    },
+    {
+      "latence_moyenne_s": 0.713,
+      "score_global": 0.5518
+    },
+    {
+      "latence_moyenne_s": 0.713,
+      "score_global": 0.5518
+    },
+    {
+      "latence_moyenne_s": 0.7854,
+      "score_global": 0.5576
+    },
+    {
+      "latence_moyenne_s": 0.8329,
+      "score_global": 0.5581
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 0.8787,
+      "score_global": 0.5734
+    },
+    {
+      "latence_moyenne_s": 1.1719,
+      "score_global": 0.5853
+    }
+  ],
+  "preuve_quantiles": {
+    "q10": 0.2302,
+    "q50": 0.3625,
+    "q90": 0.5019
+  }
+}

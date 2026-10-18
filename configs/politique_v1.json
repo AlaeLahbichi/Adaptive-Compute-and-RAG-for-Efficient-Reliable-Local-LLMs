@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "date": "2026-10-18",
+  "regle_sur": "jeu de developpement (180 questions)",
+  "contrainte_de_reglage": "latence moyenne ≤ 0.78 × latence de B",
+  "parametres": {
+    "cascade": false,
+    "conf_petit": "conf_moy",
+    "seuil_petit": 2.0,
+    "seuil_preuve": 0.286,
+    "conf_grand": "conf_min",
+    "seuil_abstention": 0.4,
+    "seuil_preuve_abstention": 0.2651
+  },
+  "etapes": "BM25 k=6 -> abstention precoce si preuve faible -> (cascade) petit modele k=3 -> si incertain : grand modele k=3 ou k=6 selon la preuve -> abstention si incertain"
+}

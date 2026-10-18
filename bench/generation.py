@@ -1,6 +1,7 @@
 """Génération locale avec MLX (Apple Silicon) et prompts figés du protocole."""
 import mlx.core as mx
-from mlx_lm import generate, load
+import numpy as np
+from mlx_lm import generate, load, stream_generate
 
 from metrics import MARQUEUR_ABSTENTION
 
@@ -37,6 +38,28 @@ class Generateur:
         n_prompt = len(self.tokenizer.encode(prompt))
         n_gen = len(self.tokenizer.encode(texte, add_special_tokens=False))
         return texte.strip(), n_prompt, n_gen
+
+    def repondre_avec_confiance(self, contenu):
+        """Comme repondre, avec la confiance du modèle : probabilités des tokens générés (décodage glouton).
+
+        Renvoie un dict : texte, tokens_prompt, tokens_generes, conf_moy (moyenne géométrique des
+        probabilités des tokens) et conf_min (probabilité du token le moins sûr).
+        """
+        prompt = self.tokenizer.apply_chat_template(
+            [{"role": "user", "content": contenu}], add_generation_prompt=True, tokenize=False)
+        morceaux, logprobs, n_prompt = [], [], 0
+        for r in stream_generate(self.modele, self.tokenizer, prompt=prompt, max_tokens=self.max_tokens):
+            morceaux.append(r.text)
+            logprobs.append(r.logprobs[r.token].item())
+            n_prompt = r.prompt_tokens
+        lp = np.array(logprobs) if logprobs else np.array([0.0])
+        return {
+            "texte": "".join(morceaux).strip(),
+            "tokens_prompt": n_prompt,
+            "tokens_generes": len(logprobs),
+            "conf_moy": float(np.exp(lp.mean())),
+            "conf_min": float(np.exp(lp.min())),
+        }
 
 
 def memoire_pic_go():

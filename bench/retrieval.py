@@ -27,6 +27,7 @@ class BM25:
     """Okapi BM25 (k1 = 1,5, b = 0,75), calculé avec une matrice creuse."""
 
     def __init__(self, textes, k1=1.5, b=0.75):
+        self.k1 = k1
         docs = [Counter(mots(t)) for t in textes]
         self.vocab = {m: i for i, m in enumerate(sorted({m for d in docs for m in d}))}
         longueurs = np.array([sum(d.values()) for d in docs], dtype=float)
@@ -48,6 +49,10 @@ class BM25:
             if m in self.vocab:
                 q[self.vocab[m]] = self.idf[self.vocab[m]]
         return self.poids @ q
+
+    def score_maximal(self, question):
+        """Score qu'obtiendrait un passage contenant très souvent tous les mots de la question."""
+        return sum(self.idf[self.vocab[m]] * (self.k1 + 1) for m in set(mots(question)) if m in self.vocab)
 
 
 class Recherche:
@@ -93,3 +98,17 @@ class Recherche:
     def chercher(self, question, k):
         """Renvoie les k passages les mieux classés."""
         return [self.passages[i] for i in self._classement(question)[:k]]
+
+    def chercher_avec_preuve(self, question, k):
+        """Recherche BM25 + signal de suffisance des preuves, en un seul calcul de scores.
+
+        preuve = score BM25 du meilleur passage / score maximal possible pour la question (entre 0 et 1) :
+        proche de 1 si un passage contient de nombreuses fois tous les mots importants de la question.
+        """
+        if self.methode != "bm25":
+            raise ValueError("Le signal de preuve est défini pour la recherche BM25.")
+        scores = self.bm25.scores(question)
+        meilleurs = np.argsort(-scores)[:k]
+        maximum = self.bm25.score_maximal(question)
+        preuve = float(scores[meilleurs[0]] / maximum) if maximum > 0 else 0.0
+        return [self.passages[i] for i in meilleurs], preuve

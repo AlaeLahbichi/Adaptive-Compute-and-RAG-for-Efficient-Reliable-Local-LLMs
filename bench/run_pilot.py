@@ -34,20 +34,22 @@ def executer_strategie(nom, params, generateurs, recherche, questions, cfg):
     gen = generateurs[params["modele"]]
     k = params["k"]
     for q in questions[: cfg["generation"]["requetes_de_chauffe"]]:  # chauffe, résultats ignorés
-        gen.repondre(construire_prompt(q["question"], recherche.chercher(q["question"], k) if k else []))
+        gen.repondre_avec_confiance(construire_prompt(q["question"], recherche.chercher(q["question"], k) if k else []))
     reinitialiser_memoire_pic()
     lignes = []
     for q in questions:
         debut = time.perf_counter()
         passages = recherche.chercher(q["question"], k) if k else []
-        sortie, n_prompt, n_gen = gen.repondre(construire_prompt(q["question"], passages))
+        r = gen.repondre_avec_confiance(construire_prompt(q["question"], passages))
         latence = time.perf_counter() - debut
-        note = noter(q, sortie, cfg["evaluation"]["seuil_f1_reponse_correcte"])
+        note = noter(q, r["texte"], cfg["evaluation"]["seuil_f1_reponse_correcte"])
         lignes.append({
-            "strategie": nom, "id": q["id"], "categorie": q["categorie"], "sortie": sortie,
+            "strategie": nom, "id": q["id"], "categorie": q["categorie"], "sortie": r["texte"],
             "passages": [p["id"] for p in passages],
             "rappel_recherche": rappel_recherche(q, [p["id"] for p in passages]) if k else None,
-            "latence_s": round(latence, 4), "tokens_prompt": n_prompt, "tokens_generes": n_gen, **note,
+            "latence_s": round(latence, 4), "tokens_prompt": r["tokens_prompt"],
+            "tokens_generes": r["tokens_generes"], "conf_moy": round(r["conf_moy"], 5),
+            "conf_min": round(r["conf_min"], 5), **note,
         })
     return lignes, memoire_pic_go()
 

@@ -4,8 +4,7 @@ Les sorties servent à entraîner et à évaluer les routeurs de référence (Pa
 est déterministe, la sortie d'un routeur pour une question est celle de la stratégie qu'il choisit.
 
 Usage :
-  HF_HUB_OFFLINE=1 python bench/run_strategies.py dev     # jeu de développement
-  HF_HUB_OFFLINE=1 python bench/run_strategies.py test    # évaluation finale uniquement, après le gel
+  HF_HUB_OFFLINE=1 python bench/run_strategies.py dev [partie3|partie4]   # jeu de développement
 """
 import json
 import random
@@ -24,13 +23,14 @@ def toutes_strategies(cfg):
 
 def main():
     split = sys.argv[1] if len(sys.argv) > 1 else "dev"
-    if split not in ("dev", "test"):
-        raise SystemExit("Usage : run_strategies.py dev|test")
+    partie = sys.argv[2] if len(sys.argv) > 2 else "partie3"
+    if split != "dev":
+        raise SystemExit("Le jeu de test est exécuté uniquement par bench/run_final.py (Partie V).")
     cfg = charger_config()
     questions = lire_jsonl(DONNEES / f"{split}.jsonl")
     random.Random(cfg["graine"]).shuffle(questions)
 
-    sortie = RESULTATS / "partie3" / split
+    sortie = RESULTATS / partie / split
     sortie.mkdir(parents=True, exist_ok=True)
     (sortie / "environnement.json").write_text(json.dumps(releve(), indent=2, ensure_ascii=False), encoding="utf-8")
 
