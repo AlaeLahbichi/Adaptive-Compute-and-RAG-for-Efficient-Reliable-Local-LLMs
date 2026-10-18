@@ -97,12 +97,16 @@ Hybride & 0,60 & 0,72 & 0,80 & 0,00 & 0,33 & 0,48 & 7,1 ms \\
 \end{tabular}
 \caption{Rappel de la recherche sur le jeu de développement (60 questions par catégorie). Pour une
 question complexe, les deux passages justificatifs doivent être récupérés : le rappel@1 est donc nul
-par construction.}
+par construction. Questions non couvertes (rappel du paragraphe d'origine, @1 / @3 / @6) : dense 0,52 /
+0,68 / 0,77 ; BM25 0,73 / 0,83 / 0,87 ; hybride 0,65 / 0,90 / 0,97.}
 \label{tab:recherche}
 \end{table}
 
-\paragraph{Décision.} BM25 est retenu. Il domine les deux autres méthodes sur toutes les mesures, tout
-en étant 40 fois plus rapide et sans modèle d'embeddings à exécuter. Ce résultat s'explique par la
+\paragraph{Décision.} BM25 est retenu. Sur les questions qui ont une réponse (simples et complexes),
+il domine les deux autres méthodes à chaque profondeur, tout en étant 40 fois plus rapide et sans
+modèle d'embeddings à exécuter. Sur les questions non couvertes, la recherche hybride retrouve plus
+souvent le paragraphe d'origine (rappel@3 de 0,90 contre 0,83). Ce critère compte moins pour elles, car
+le comportement attendu est de s'abstenir et le paragraphe d'origine ne contient pas la réponse. Ce résultat s'explique par la
 nature des questions, riches en noms propres et en termes repris du texte source, et par la faiblesse
 relative du petit modèle d'embeddings multilingue. La fusion hybride, à poids égaux, est tirée vers le
 bas par la composante dense.
