@@ -1,0 +1,167 @@
+{
+  "puissance_repos_w": 2.679,
+  "echantillons": 30630,
+  "methodes": {
+    "F_petit_rag6": [
+      {
+        "passe": 1,
+        "duree_s": 276.01,
+        "puissance_moyenne_w": 25.5,
+        "energie_nette_j": 6294.32,
+        "joules_par_question": 13.8947
+      },
+      {
+        "passe": 2,
+        "duree_s": 276.17,
+        "puissance_moyenne_w": 25.133,
+        "energie_nette_j": 6202.86,
+        "joules_par_question": 13.6928
+      },
+      {
+        "passe": 3,
+        "duree_s": 274.55,
+        "puissance_moyenne_w": 24.18,
+        "energie_nette_j": 5899.6,
+        "joules_par_question": 13.0234
+      }
+    ],
+    "B_grand_rag": [
+      {
+        "passe": 1,
+        "duree_s": 394.03,
+        "puissance_moyenne_w": 24.348,
+        "energie_nette_j": 8537.37,
+        "joules_par_question": 18.8463
+      },
+      {
+        "passe": 2,
+        "duree_s": 401.96,
+        "puissance_moyenne_w": 25.957,
+        "energie_nette_j": 9359.43,
+        "joules_par_question": 20.661
+      },
+      {
+        "passe": 3,
+        "duree_s": 395.97,
+        "puissance_moyenne_w": 23.827,
+        "energie_nette_j": 8373.63,
+        "joules_par_question": 18.4848
+      }
+    ],
+    "D_petit_rag": [
+      {
+        "passe": 1,
+        "duree_s": 159.63,
+        "puissance_moyenne_w": 23.43,
+        "energie_nette_j": 3308.36,
+        "joules_par_question": 7.3032
+      },
+      {
+        "passe": 2,
+        "duree_s": 161.22,
+        "puissance_moyenne_w": 23.482,
+        "energie_nette_j": 3356.64,
+        "joules_par_question": 7.4098
+      },
+      {
+        "passe": 3,
+        "duree_s": 160.77,
+        "puissance_moyenne_w": 22.605,
+        "energie_nette_j": 3206.72,
+        "joules_par_question": 7.0789
+      }
+    ],
+    "P_politique_adaptative": [
+      {
+        "passe": 1,
+        "duree_s": 355.84,
+        "puissance_moyenne_w": 25.257,
+        "energie_nette_j": 8033.69,
+        "joules_par_question": 17.7344
+      },
+      {
+        "passe": 2,
+        "duree_s": 363.39,
+        "puissance_moyenne_w": 24.929,
+        "energie_nette_j": 8082.01,
+        "joules_par_question": 17.8411
+      },
+      {
+        "passe": 3,
+        "duree_s": 356.19,
+        "puissance_moyenne_w": 24.222,
+        "energie_nette_j": 7672.85,
+        "joules_par_question": 16.9379
+      }
+    ],
+    "E_grand_rag6": [
+      {
+        "passe": 1,
+        "duree_s": 738.43,
+        "puissance_moyenne_w": 27.312,
+        "energie_nette_j": 18194.1,
+        "joules_par_question": 40.1636
+      },
+      {
+        "passe": 2,
+        "duree_s": 711.72,
+        "puissance_moyenne_w": 26.586,
+        "energie_nette_j": 17015.08,
+        "joules_par_question": 37.5609
+      },
+      {
+        "passe": 3,
+        "duree_s": 707.29,
+        "puissance_moyenne_w": 25.256,
+        "energie_nette_j": 15969.45,
+        "joules_par_question": 35.2526
+      }
+    ],
+    "C_petit_sans_rag": [
+      {
+        "passe": 1,
+        "duree_s": 61.14,
+        "puissance_moyenne_w": 16.605,
+        "energie_nette_j": 850.66,
+        "joules_par_question": 1.8778
+      },
+      {
+        "passe": 2,
+        "duree_s": 61.16,
+        "puissance_moyenne_w": 16.745,
+        "energie_nette_j": 858.79,
+        "joules_par_question": 1.8958
+      },
+      {
+        "passe": 3,
+        "duree_s": 60.41,
+        "puissance_moyenne_w": 15.977,
+        "energie_nette_j": 804.02,
+        "joules_par_question": 1.7749
+      }
+    ],
+    "A_grand_sans_rag": [
+      {
+        "passe": 1,
+        "duree_s": 121.15,
+        "puissance_moyenne_w": 16.698,
+        "energie_nette_j": 1698.26,
+        "joules_par_question": 3.7489
+      },
+      {
+        "passe": 2,
+        "duree_s": 123.35,
+        "puissance_moyenne_w": 17.744,
+        "energie_nette_j": 1857.01,
+        "joules_par_question": 4.0994
+      },
+      {
+        "passe": 3,
+        "duree_s": 121.69,
+        "puissance_moyenne_w": 16.615,
+        "energie_nette_j": 1696.02,
+        "joules_par_question": 3.744
+      }
+    ]
+  }
+}

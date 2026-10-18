@@ -1,0 +1,156 @@
+[
+  {
+    "methode": "repos",
+    "passe": 0,
+    "debut": 1792347951.5934908,
+    "fin": 1792347971.5939488,
+    "n": 0
+  },
+  {
+    "methode": "F_petit_rag6",
+    "passe": 1,
+    "debut": 1792347971.594197,
+    "fin": 1792348247.600545,
+    "n": 453
+  },
+  {
+    "methode": "B_grand_rag",
+    "passe": 1,
+    "debut": 1792348250.610826,
+    "fin": 1792348644.6399722,
+    "n": 453
+  },
+  {
+    "methode": "D_petit_rag",
+    "passe": 1,
+    "debut": 1792348647.6545331,
+    "fin": 1792348807.2869482,
+    "n": 453
+  },
+  {
+    "methode": "P_politique_adaptative",
+    "passe": 1,
+    "debut": 1792348810.3055658,
+    "fin": 1792349166.1468601,
+    "n": 453
+  },
+  {
+    "methode": "E_grand_rag6",
+    "passe": 1,
+    "debut": 1792349169.15947,
+    "fin": 1792349907.592536,
+    "n": 453
+  },
+  {
+    "methode": "C_petit_sans_rag",
+    "passe": 1,
+    "debut": 1792349910.609333,
+    "fin": 1792349971.747426,
+    "n": 453
+  },
+  {
+    "methode": "A_grand_sans_rag",
+    "passe": 1,
+    "debut": 1792349974.762578,
+    "fin": 1792350095.911895,
+    "n": 453
+  },
+  {
+    "methode": "A_grand_sans_rag",
+    "passe": 2,
+    "debut": 1792350098.929355,
+    "fin": 1792350222.2816908,
+    "n": 453
+  },
+  {
+    "methode": "B_grand_rag",
+    "passe": 2,
+    "debut": 1792350225.299374,
+    "fin": 1792350627.25899,
+    "n": 453
+  },
+  {
+    "methode": "C_petit_sans_rag",
+    "passe": 2,
+    "debut": 1792350630.2813492,
+    "fin": 1792350691.43743,
+    "n": 453
+  },
+  {
+    "methode": "D_petit_rag",
+    "passe": 2,
+    "debut": 1792350694.4584231,
+    "fin": 1792350855.676735,
+    "n": 453
+  },
+  {
+    "methode": "F_petit_rag6",
+    "passe": 2,
+    "debut": 1792350858.701561,
+    "fin": 1792351134.875859,
+    "n": 453
+  },
+  {
+    "methode": "E_grand_rag6",
+    "passe": 2,
+    "debut": 1792351137.901958,
+    "fin": 1792351849.624511,
+    "n": 453
+  },
+  {
+    "methode": "P_politique_adaptative",
+    "passe": 2,
+    "debut": 1792351852.653237,
+    "fin": 1792352216.044799,
+    "n": 453
+  },
+  {
+    "methode": "C_petit_sans_rag",
+    "passe": 3,
+    "debut": 1792352219.070904,
+    "fin": 1792352279.479274,
+    "n": 453
+  },
+  {
+    "methode": "P_politique_adaptative",
+    "passe": 3,
+    "debut": 1792352282.507506,
+    "fin": 1792352638.693405,
+    "n": 453
+  },
+  {
+    "methode": "D_petit_rag",
+    "passe": 3,
+    "debut": 1792352641.723778,
+    "fin": 1792352802.495113,
+    "n": 453
+  },
+  {
+    "methode": "F_petit_rag6",
+    "passe": 3,
+    "debut": 1792352805.5292978,
+    "fin": 1792353080.083158,
+    "n": 453
+  },
+  {
+    "methode": "E_grand_rag6",
+    "passe": 3,
+    "debut": 1792353083.1118028,
+    "fin": 1792353790.401571,
+    "n": 453
+  },
+  {
+    "methode": "A_grand_sans_rag",
+    "passe": 3,
+    "debut": 1792353793.441517,
+    "fin": 1792353915.127875,
+    "n": 453
+  },
+  {
+    "methode": "B_grand_rag",
+    "passe": 3,
+    "debut": 1792353918.163457,
+    "fin": 1792354314.136089,
+    "n": 453
+  }
+]

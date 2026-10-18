@@ -18,7 +18,7 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | **II. Benchmark & protocole** | Jeu de questions, métriques, critères de succès, pilote | ✅ gelé (`protocole-v1.0`) |
 | **III. Méthodes de référence** | Choix de la recherche, stratégies fixes A–F, routeurs R1 et R2 | ✅ |
 | **IV. Politique adaptative** | Routeur conjoint modèle × RAG × abstention | ✅ gelée (`politique-v1.0`) |
-| V. Expériences & ablations | Comparaisons, analyse par catégorie | ⬜ à venir |
+| **V. Évaluation finale** | Test unique, verdict, ablations, énergie | ✅ (critère principal non atteint) |
 | VI. Article | Rédaction | ⬜ à venir |
 
 ## Partie I : État de l'art
@@ -120,6 +120,26 @@ results/partie4/        # Sorties dev avec confiance du modèle, réglage et abl
 | Politique, estimation par validation croisée | 0,520 | −22 % | −2,1 pts |
 
 L'abstention est la composante clé : sans elle, le score tombe à 0,39.
+
+## Partie V : Évaluation finale (jeu de test, exécuté une seule fois)
+
+```
+livrable/L5_evaluation_finale.pdf   # Livrable L5 (8 p.)
+bench/
+├── run_final.py        # 3 passes sur le test (ordre des méthodes aléatoire), mesure d'énergie
+└── evaluate_final.py   # Verdict, routeurs R1/R2 et ablations appliqués au test
+results/partie5/        # Sorties brutes des 3 passes, énergie, evaluation_finale.json
+```
+
+| Méthode (test, 450 questions) | Score global | Latence moyenne | Énergie / question |
+|---|---|---|---|
+| B – référence | 0,537 | 0,87 s | 19,3 J |
+| **Politique adaptative** | **0,550** (+1,3 pt) | **0,79 s (−10 %)** | **17,5 J (−9 %)** |
+| R1 – routeur « question seule » | 0,489 | 0,74 s | – |
+| R2 – Adaptive-RAG simplifié | 0,517 | 0,82 s | – |
+| *Oracle* | *0,797* | *0,36 s* | – |
+
+**Verdict :** qualité au niveau de B (non-infériorité démontrée, IC 95 % de la perte [−4,1 ; +1,6] pts), moins d'erreurs, et meilleure que R1 et R2 ; mais la latence ne baisse que de 10 % au lieu de 20 % : **le critère de succès principal n'est pas atteint**. Cause : le seuil d'abstention précoce, réglé sur 180 questions, se déclenche sur 25 % des questions de dev mais 15 % du test.
 
 ## Reproduire
 

@@ -1,0 +1,33 @@
+{
+  "machine": {
+    "puce": "Apple M3 Pro",
+    "coeurs": 12,
+    "memoire_gio": 18.0,
+    "macos": "27.0.1"
+  },
+  "python": "3.12.11",
+  "paquets": {
+    "mlx": "0.32.3",
+    "mlx-lm": "0.32.0",
+    "transformers": "5.19.0",
+    "torch": "2.14.1",
+    "sentence-transformers": "6.1.0",
+    "numpy": "2.5.3",
+    "pandas": "3.0.6",
+    "psutil": "7.2.2"
+  },
+  "modeles": {
+    "petit": {
+      "nom": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+      "revision": "8b403126fc14f14cfc99bb4cfa72ecbc129ea677"
+    },
+    "grand": {
+      "nom": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+      "revision": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b"
+    },
+    "embeddings": {
+      "nom": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42"
+    }
+  }
+}
