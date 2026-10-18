@@ -15,8 +15,8 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | Partie | Contenu | Statut |
 |---|---|---|
 | **I. État de l'art** | Revue de littérature, tableau de lecture, positionnement | ✅ v0.1 (pré-analyse à partir des résumés) |
-| **II. Benchmark & protocole** | Jeu de questions, métriques, critères de succès, pilote | ✅ v1.0-pilote (gel après choix de la recherche) |
-| III. Baselines | Grand modèle seul, RAG systématique, petit modèle seul | ⬜ à venir |
+| **II. Benchmark & protocole** | Jeu de questions, métriques, critères de succès, pilote | ✅ gelé (`protocole-v1.0`) |
+| **III. Méthodes de référence** | Choix de la recherche, stratégies fixes A–F, routeurs R1 et R2 | ✅ |
 | IV. Politique adaptative | Routeur conjoint modèle × RAG × abstention | ⬜ à venir |
 | V. Expériences & ablations | Comparaisons, analyse par catégorie | ⬜ à venir |
 | VI. Article | Rédaction | ⬜ à venir |
@@ -73,6 +73,31 @@ results/pilote/          # Sorties brutes et résumé du pilote
 
 Aucune stratégie fixe n'est la meilleure sur toutes les catégories : une politique adaptative a une marge réelle.
 
+## Partie III : Méthodes de référence
+
+```
+livrable/L3_methodes_de_reference.pdf   # Livrable L3 (7 p.)
+livrable/figures/                       # Figure qualité–coût
+bench/
+├── compare_retrieval.py   # Compare recherche dense, BM25 et hybride (rappel@k, temps)
+├── run_strategies.py      # Exécute les 6 stratégies fixes A–F
+├── routers.py             # Routeurs de référence R1 (question seule) et R2 (Adaptive-RAG simplifié)
+└── plot_partie3.py        # Figure qualité–coût
+results/partie3/           # Comparaison des recherches, sorties des stratégies, résultats des routeurs
+```
+
+**Résultats (jeu de développement, validation croisée) :**
+
+| Méthode | Score global | Latence moyenne | Écart à B |
+|---|---|---|---|
+| B – grand modèle + 3 passages BM25 (référence) | 0,541 | 0,92 s | – |
+| R1 – routeur « question seule », réglé 20 % plus rapide que B | 0,425 | 0,74 s | −11,6 pts |
+| R2 – Adaptive-RAG simplifié | 0,522 | 0,85 s | −1,9 pts |
+| *Oracle* | *0,762* | *0,40 s* | *+22,1 pts* |
+
+- La recherche **BM25** remplace la recherche dense : meilleur rappel et 40 fois plus rapide. Le protocole est gelé (étiquette `protocole-v1.0`).
+- Aucun routeur fondé sur la seule question ne satisfait le critère de succès : la méthode adaptative devra utiliser d'autres signaux (qualité des preuves, incertitude du modèle).
+
 **Modèles utilisés** (exécutés localement avec MLX sur Apple M3 Pro, 18 Go) : Qwen2.5-1.5B-Instruct et Qwen3-4B-Instruct-2507, quantifiés en 4 bits.
 
 ## Reproduire
@@ -82,5 +107,8 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python bench/build_benchmark.py              # télécharge les sources, vérifie leur empreinte, construit le benchmark
 HF_HUB_OFFLINE=1 python bench/run_pilot.py   # pilote sur le jeu de développement
+HF_HUB_OFFLINE=1 python bench/compare_retrieval.py
+HF_HUB_OFFLINE=1 python bench/run_strategies.py dev
+python bench/routers.py dev && python bench/plot_partie3.py
 cd livrable && latexmk -pdf L2_cahier_experimental.tex
 ```
