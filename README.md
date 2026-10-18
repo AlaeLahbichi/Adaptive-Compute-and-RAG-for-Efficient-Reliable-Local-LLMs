@@ -19,7 +19,7 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | **III. Méthodes de référence** | Choix de la recherche, stratégies fixes A–F, routeurs R1 et R2 | ✅ |
 | **IV. Politique adaptative** | Routeur conjoint modèle × RAG × abstention | ✅ gelée (`politique-v1.0`) |
 | **V. Évaluation finale** | Test unique, verdict, ablations, énergie | ✅ (critère principal non atteint) |
-| **VI. Article** | Article final, points faibles et améliorations | ✅ `article/L6_article_final.pdf` |
+| **VI. Article** | Article final, points faibles et améliorations | ✅ `article/article_fr.pdf`, `article/article_en.pdf` |
 
 ## Partie I : État de l'art
 
@@ -145,11 +145,13 @@ results/partie5/        # Sorties brutes des 3 passes, énergie, evaluation_fina
 
 ```
 article/
-├── L6_article_final.pdf   # Article final complet (19 p.) : état de l’art → protocole → pilote → références → politique → évaluation → points faibles
-├── L6_article_final.tex   # Source LaTeX autonome (compilable telle quelle, compatible Overleaf)
-├── references.bib         # Bibliographie
-└── figures/               # Figure qualité–coût du jeu de test
+├── article_fr.pdf / .tex   # Article complet en français (22 p.)
+├── article_en.pdf / .tex   # Version anglaise (21 p.)
+├── references.bib          # Bibliographie commune
+└── figures/                # Figures qualité–latence (versions FR et EN)
 ```
+
+Plan : introduction (contexte, problématique, questions de recherche) → cadre conceptuel → état de l'art → benchmark et protocole → étude pilote → méthodes de référence → politique adaptative → évaluation finale → discussion → points faibles et améliorations → conclusion.
 
 ## Reproduire
 
