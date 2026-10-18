@@ -1,0 +1,286 @@
+{
+  "recherche": {
+    "complexe": {
+      "rappel@1": 0.0,
+      "rappel@3": 0.217,
+      "rappel@6": 0.35,
+      "rappel@10": 0.45
+    },
+    "simple": {
+      "rappel@1": 0.483,
+      "rappel@3": 0.6,
+      "rappel@6": 0.7,
+      "rappel@10": 0.767
+    },
+    "non_couverte": {
+      "rappel@1": 0.517,
+      "rappel@3": 0.683,
+      "rappel@6": 0.767,
+      "rappel@10": 0.817
+    }
+  },
+  "strategies": {
+    "A_grand_sans_rag": {
+      "global": {
+        "n": 180,
+        "score_global": 0.3125,
+        "ic95": [
+          0.2486,
+          0.3772
+        ],
+        "em": 0.2778,
+        "couverture": 0.3111,
+        "risque": 0.8214,
+        "latence_moyenne_s": 0.2512,
+        "latence_mediane_s": 0.222,
+        "latence_p95_s": 0.4263,
+        "tokens_moyens": 62.3,
+        "memoire_pic_go": 3.43
+      },
+      "par_categorie": {
+        "complexe": {
+          "n": 60,
+          "score_global": 0.0871,
+          "ic95": [
+            0.0352,
+            0.1491
+          ],
+          "em": 0.0167,
+          "couverture": 0.4,
+          "risque": 0.7083,
+          "latence_moyenne_s": 0.2682,
+          "latence_mediane_s": 0.2283,
+          "latence_p95_s": 0.4715,
+          "tokens_moyens": 68.0
+        },
+        "non_couverte": {
+          "n": 60,
+          "score_global": 0.7833,
+          "ic95": [
+            0.6833,
+            0.8833
+          ],
+          "em": 0.7833,
+          "couverture": 0.2167,
+          "risque": 1.0,
+          "latence_moyenne_s": 0.2405,
+          "latence_mediane_s": 0.2205,
+          "latence_p95_s": 0.4092,
+          "tokens_moyens": 59.2
+        },
+        "simple": {
+          "n": 60,
+          "score_global": 0.0671,
+          "ic95": [
+            0.022,
+            0.1239
+          ],
+          "em": 0.0333,
+          "couverture": 0.3167,
+          "risque": 0.8421,
+          "latence_moyenne_s": 0.245,
+          "latence_mediane_s": 0.2205,
+          "latence_p95_s": 0.3786,
+          "tokens_moyens": 59.7
+        }
+      }
+    },
+    "B_grand_rag": {
+      "global": {
+        "n": 180,
+        "score_global": 0.4237,
+        "ic95": [
+          0.3551,
+          0.4925
+        ],
+        "em": 0.3556,
+        "couverture": 0.5556,
+        "risque": 0.53,
+        "latence_moyenne_s": 0.9912,
+        "latence_mediane_s": 0.94,
+        "latence_p95_s": 1.5462,
+        "tokens_moyens": 579.4,
+        "memoire_pic_go": 4.1
+      },
+      "par_categorie": {
+        "complexe": {
+          "n": 60,
+          "score_global": 0.2721,
+          "ic95": [
+            0.1744,
+            0.3756
+          ],
+          "em": 0.1833,
+          "couverture": 0.5167,
+          "risque": 0.4194,
+          "latence_moyenne_s": 0.827,
+          "latence_mediane_s": 0.836,
+          "latence_p95_s": 1.1517,
+          "tokens_moyens": 470.6
+        },
+        "non_couverte": {
+          "n": 60,
+          "score_global": 0.55,
+          "ic95": [
+            0.4333,
+            0.6667
+          ],
+          "em": 0.55,
+          "couverture": 0.45,
+          "risque": 1.0,
+          "latence_moyenne_s": 1.0727,
+          "latence_mediane_s": 1.0029,
+          "latence_p95_s": 1.7597,
+          "tokens_moyens": 641.5
+        },
+        "simple": {
+          "n": 60,
+          "score_global": 0.449,
+          "ic95": [
+            0.3368,
+            0.5657
+          ],
+          "em": 0.3333,
+          "couverture": 0.7,
+          "risque": 0.3095,
+          "latence_moyenne_s": 1.0739,
+          "latence_mediane_s": 1.0332,
+          "latence_p95_s": 1.5302,
+          "tokens_moyens": 626.1
+        }
+      }
+    },
+    "C_petit_sans_rag": {
+      "global": {
+        "n": 180,
+        "score_global": 0.2329,
+        "ic95": [
+          0.1747,
+          0.2945
+        ],
+        "em": 0.2167,
+        "couverture": 0.4556,
+        "risque": 0.9268,
+        "latence_moyenne_s": 0.1266,
+        "latence_mediane_s": 0.1089,
+        "latence_p95_s": 0.2161,
+        "tokens_moyens": 84.4,
+        "memoire_pic_go": 3.35
+      },
+      "par_categorie": {
+        "complexe": {
+          "n": 60,
+          "score_global": 0.0684,
+          "ic95": [
+            0.0167,
+            0.1333
+          ],
+          "em": 0.05,
+          "couverture": 0.4167,
+          "risque": 0.84,
+          "latence_moyenne_s": 0.1183,
+          "latence_mediane_s": 0.1089,
+          "latence_p95_s": 0.2068,
+          "tokens_moyens": 88.5
+        },
+        "non_couverte": {
+          "n": 60,
+          "score_global": 0.5833,
+          "ic95": [
+            0.4667,
+            0.7
+          ],
+          "em": 0.5833,
+          "couverture": 0.4167,
+          "risque": 1.0,
+          "latence_moyenne_s": 0.1312,
+          "latence_mediane_s": 0.1091,
+          "latence_p95_s": 0.2342,
+          "tokens_moyens": 82.3
+        },
+        "simple": {
+          "n": 60,
+          "score_global": 0.0471,
+          "ic95": [
+            0.0142,
+            0.0913
+          ],
+          "em": 0.0167,
+          "couverture": 0.5333,
+          "risque": 0.9375,
+          "latence_moyenne_s": 0.1302,
+          "latence_mediane_s": 0.1088,
+          "latence_p95_s": 0.2161,
+          "tokens_moyens": 82.5
+        }
+      }
+    },
+    "D_petit_rag": {
+      "global": {
+        "n": 180,
+        "score_global": 0.2975,
+        "ic95": [
+          0.235,
+          0.3633
+        ],
+        "em": 0.2556,
+        "couverture": 0.7778,
+        "risque": 0.7143,
+        "latence_moyenne_s": 0.3947,
+        "latence_mediane_s": 0.3699,
+        "latence_p95_s": 0.5881,
+        "tokens_moyens": 600.7,
+        "memoire_pic_go": 4.05
+      },
+      "par_categorie": {
+        "complexe": {
+          "n": 60,
+          "score_global": 0.3091,
+          "ic95": [
+            0.2024,
+            0.4215
+          ],
+          "em": 0.25,
+          "couverture": 0.8,
+          "risque": 0.6042,
+          "latence_moyenne_s": 0.332,
+          "latence_mediane_s": 0.3347,
+          "latence_p95_s": 0.4232,
+          "tokens_moyens": 491.9
+        },
+        "non_couverte": {
+          "n": 60,
+          "score_global": 0.25,
+          "ic95": [
+            0.15,
+            0.3667
+          ],
+          "em": 0.25,
+          "couverture": 0.75,
+          "risque": 1.0,
+          "latence_moyenne_s": 0.4283,
+          "latence_mediane_s": 0.3947,
+          "latence_p95_s": 0.666,
+          "tokens_moyens": 663.0
+        },
+        "simple": {
+          "n": 60,
+          "score_global": 0.3335,
+          "ic95": [
+            0.2252,
+            0.4466
+          ],
+          "em": 0.2667,
+          "couverture": 0.7833,
+          "risque": 0.5532,
+          "latence_moyenne_s": 0.4237,
+          "latence_mediane_s": 0.4065,
+          "latence_p95_s": 0.5881,
+          "tokens_moyens": 647.1
+        }
+      }
+    }
+  },
+  "duree_pilote_s": 351.1,
+  "estimation_test_complet_min": 14.6
+}

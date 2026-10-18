@@ -1,0 +1,58 @@
+{
+  "version": "1.0-pilote",
+  "date": "2026-10-18",
+  "graine": 2026,
+  "benchmark": {
+    "sources": {
+      "squad2_dev": {
+        "url": "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json",
+        "sha256": "80a5225e94905956a6446d296ca1093975c4d3b3260f1d6c8f68bc2ab77182d8",
+        "licence": "CC BY-SA 4.0"
+      },
+      "hotpotqa_dev_distractor": {
+        "url": "https://huggingface.co/datasets/hotpotqa/hotpot_qa/resolve/main/distractor/validation-00000-of-00001.parquet",
+        "sha256": "c20b638ca82b21d04fe12e14ff417ad05153d4d215a65de54497fca4e972f7c6",
+        "licence": "CC BY-SA 4.0"
+      }
+    },
+    "questions_par_categorie": {"dev": 60, "test": 150},
+    "categories": ["simple", "complexe", "non_couverte"],
+    "categorie_a_annoter_manuellement": "ambigue",
+    "part_articles_squad_dev": 0.3
+  },
+  "modeles": {
+    "petit": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+    "grand": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+    "embeddings": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  },
+  "generation": {
+    "decodage": "glouton (temperature 0)",
+    "max_tokens": 32,
+    "modeles_precharges": true,
+    "requetes_de_chauffe": 3
+  },
+  "recherche": {
+    "methode": "similarite cosinus exacte (equivalent FAISS IndexFlatIP)",
+    "k": 3,
+    "k_recherche_complementaire": 6
+  },
+  "abstention": {
+    "marqueur": "UNANSWERABLE"
+  },
+  "evaluation": {
+    "seuil_f1_reponse_correcte": 0.5,
+    "bootstrap_reechantillonnages": 10000,
+    "niveau_confiance": 0.95
+  },
+  "strategies_fixes": {
+    "A_grand_sans_rag": {"modele": "grand", "k": 0},
+    "B_grand_rag": {"modele": "grand", "k": 3},
+    "C_petit_sans_rag": {"modele": "petit", "k": 0},
+    "D_petit_rag": {"modele": "petit", "k": 3}
+  },
+  "reference_criteres_de_succes": "B_grand_rag",
+  "criteres_de_succes": {
+    "reduction_latence_moyenne_min": 0.20,
+    "perte_score_global_max_points": 2.0
+  }
+}

@@ -17,3 +17,9 @@ resume/zotero_log.txt
 
 # Documents de cadrage non publiés
 Cahier_des_charges_*.pdf
+
+# Données brutes (téléchargées par bench/build_benchmark.py) et caches
+data/raw/
+data/cache/
+__pycache__/
+results_pilot_stdout.txt

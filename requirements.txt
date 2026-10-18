@@ -1,0 +1,10 @@
+# Versions utilisées pour le pilote du 18/10/2026 (Python 3.12.11, macOS, Apple M3 Pro)
+mlx==0.32.3
+mlx-lm==0.32.0
+sentence-transformers==6.1.0
+transformers==5.19.0
+torch==2.14.1
+numpy==2.5.3
+pandas==3.0.6
+pyarrow==25.0.1
+psutil==7.2.2

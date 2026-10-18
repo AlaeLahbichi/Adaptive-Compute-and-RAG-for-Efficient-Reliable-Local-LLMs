@@ -1,0 +1,467 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,linkcolor=teal!70!black,citecolor=teal!70!black,urlcolor=teal!70!black]{hyperref}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\setlist{itemsep=2pt,topsep=4pt}
+
+\title{\textbf{Livrable L2 -- Cahier expérimental}\\[4pt]
+\large Allocation adaptative des ressources de calcul et de recherche documentaire\\ pour des systèmes LLM locaux, économes et fiables\\[2pt]
+\normalsize\textit{Benchmark, systèmes comparés, métriques, critères de succès et pilote}}
+\author{Alae Lahbichi -- Étudiant en 5\textsuperscript{e} année IA/Data\\[2pt]
+\small\href{mailto:a.lahbichi2004@gmail.com}{\texttt{a.lahbichi2004@gmail.com}}\\
+\small Dépôt GitHub : \href{https://github.com/AlaeLahbichi/Adaptive-Compute-and-RAG-for-Efficient-Reliable-Local-LLMs}{\footnotesize\texttt{AlaeLahbichi/Adaptive-Compute-and-RAG-for-Efficient-Reliable-Local-LLMs}}}
+\date{Version 1.0-pilote -- 18 octobre 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\fcolorbox{teal!60!black}{teal!5}{\parbox{0.92\textwidth}{\small
+\textbf{Rôle du document.} Ce cahier fixe, \emph{avant} toute expérience finale, le benchmark, les
+systèmes comparés, les métriques, la méthode statistique et les critères de succès. Les paramètres
+sont consignés dans \texttt{configs/protocole\_v1.json}. Après validation du pilote
+(section~\ref{sec:pilote}), le protocole sera gelé par l'étiquette Git \texttt{protocole-v1.0} :
+toute modification ultérieure devra être datée, justifiée et signalée dans l'article.}}
+\end{center}
+
+\begin{abstract}
+\noindent Ce cahier expérimental définit le cadre d'évaluation d'une politique qui alloue, requête par
+requête, la taille du modèle, la recherche documentaire et l'abstention. Le benchmark réunit
+630 questions en trois catégories (simple, complexe, non couverte), tirées de SQuAD~2.0 et HotpotQA,
+et un corpus de 3\,293 passages. Il est séparé en un jeu de développement (180 questions) et un jeu de
+test (450 questions) réservé à l'évaluation finale. Deux modèles déjà présents sur la machine sont
+utilisés : Qwen2.5-1.5B et Qwen3-4B, quantifiés en 4 bits et exécutés avec MLX sur un Apple M3 Pro.
+Quatre stratégies fixes servent de référence. Le critère de succès principal est une réduction d'au
+moins 20\,\% de la latence moyenne par rapport à la stratégie « grand modèle + RAG », pour une perte
+de score global d'au plus 2 points. Un pilote sur le jeu de développement valide la chaîne complète
+et estime le temps de calcul.
+\end{abstract}
+
+\clearpage
+\tableofcontents
+\clearpage
+
+%======================================================================
+\section{Objet et principes}\label{sec:objet}
+%======================================================================
+
+Le cahier des charges impose de \emph{définir le succès avant les tests} et de \emph{séparer
+développement et test}. Trois principes en découlent :
+\begin{enumerate}
+\item \textbf{Pré-enregistrement.} Les questions, les métriques, les systèmes de référence et les seuils
+de succès sont fixés ici avant de développer la méthode adaptative (Partie IV).
+\item \textbf{Étanchéité du test.} Les seuils de la méthode sont réglés uniquement sur le jeu de
+développement. Le jeu de test n'est exécuté qu'une fois, sur la version finale, après le gel.
+\item \textbf{Mêmes conditions pour tous.} Tous les systèmes sont évalués sur les mêmes questions, sur la
+même machine, avec les mêmes modèles, prompts et paramètres de génération.
+\end{enumerate}
+
+%======================================================================
+\section{Environnement matériel et logiciel}\label{sec:env}
+%======================================================================
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{l Y}
+\toprule
+\textbf{Élément} & \textbf{Valeur} \\
+\midrule
+Machine & Apple M3 Pro, 12 cœurs, 18 Go de mémoire unifiée, macOS 27.0.1 \\
+Exécution des modèles & MLX 0.32.3 et mlx-lm 0.32.0 (Python 3.12.11) \\
+Petit modèle & \texttt{mlx-community/Qwen2.5-1.5B-Instruct-4bit} (environ 1,0 Go en mémoire) \\
+Grand modèle & \texttt{mlx-community/Qwen3-4B-Instruct-2507-4bit} (environ 2,5 Go en mémoire) \\
+Embeddings & \texttt{sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2} \\
+Recherche & Similarité cosinus exacte en NumPy, équivalente à un index FAISS \texttt{IndexFlatIP} \\
+Énergie & \texttt{powermetrics} (macOS), si les droits administrateur sont disponibles \\
+\bottomrule
+\end{tabularx}
+\caption{Environnement d'exécution. Les révisions exactes des modèles et les versions des paquets sont
+relevées automatiquement par \texttt{bench/check\_env.py} à chaque série d'expériences.}
+\label{tab:env}
+\end{table}
+
+\paragraph{Choix de MLX plutôt qu'Ollama.} Le cahier des charges cite Ollama parmi les options
+possibles. MLX est retenu parce qu'il est optimisé pour Apple Silicon, que les modèles étaient déjà
+présents localement (aucun téléchargement supplémentaire) et qu'il donne accès au pic de mémoire
+consommé par le modèle. Les deux modèles tiennent ensemble en mémoire (environ 3,5 Go), ce qui permet
+de passer de l'un à l'autre sans rechargement.
+
+\paragraph{Choix des modèles.} Le ratio de taille est d'environ 2,7 (1,5 contre 4 milliards de
+paramètres). Les deux modèles appartiennent à deux générations de Qwen : l'écart de qualité ne
+s'explique donc pas uniquement par la taille. Ce point est sans conséquence pour l'objectif, qui est
+de disposer de deux niveaux de coût et de capacité, mais il sera mentionné comme limite. Llama-3.2-3B,
+également disponible, pourra servir de test de robustesse (QR4).
+
+%======================================================================
+\section{Benchmark}\label{sec:benchmark}
+%======================================================================
+
+\subsection{Sources}
+\begin{itemize}
+\item \textbf{SQuAD 2.0}, jeu de développement \citep{rajpurkar2018squad2} : 35 articles de Wikipédia
+(histoire, sciences, droit, géographie, institutions), avec des questions à réponse et des questions
+sans réponse rédigées pour ressembler aux premières.
+\item \textbf{HotpotQA}, jeu de développement en configuration \emph{distractor} \citep{yang2018hotpotqa} :
+questions qui exigent de combiner deux pages Wikipédia, accompagnées de 8 paragraphes distracteurs.
+\end{itemize}
+Les deux jeux sont sous licence CC BY-SA 4.0. Leur empreinte SHA-256 est vérifiée à la construction.
+
+\subsection{Corpus documentaire}
+Le corpus est la « bibliothèque » dans laquelle la recherche documentaire puise ; il ne sert pas à
+entraîner les modèles. Il réunit les 1\,204 paragraphes de SQuAD 2.0 et les 2\,089 paragraphes
+distincts associés aux questions HotpotQA retenues, soit \textbf{3\,293 passages}. Toutes les
+questions interrogent ce même corpus : la recherche doit donc retrouver les bons passages parmi
+plusieurs milliers.
+
+\subsection{Catégories de questions}
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{l l Y l}
+\toprule
+\textbf{Catégorie} & \textbf{Source} & \textbf{Définition} & \textbf{Attendu} \\
+\midrule
+Simple & SQuAD 2.0 & La réponse se trouve dans un seul passage & Répondre \\
+Complexe & HotpotQA & La réponse exige de combiner deux passages & Répondre \\
+Non couverte & SQuAD 2.0 & Le passage d'origine ne contient pas la réponse & S'abstenir \\
+Ambiguë & Annotation manuelle & Plusieurs interprétations possibles & Préciser ou couvrir \\
+\bottomrule
+\end{tabularx}
+\caption{Catégories du benchmark.}
+\label{tab:categories}
+\end{table}
+
+\paragraph{Catégorie « ambiguë ».} Aucun des deux jeux ne fournit de questions ambiguës alignées sur le
+corpus. Elles seront rédigées à la main, avec un objectif de 50 questions, dans le fichier
+\texttt{data/benchmark/ambigues\_a\_annoter.jsonl}, qui contient un exemple et le format attendu. Elles
+seront évaluées séparément et ne font pas partie du critère de succès principal.
+
+\subsection{Taille et séparation}
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l c c c c}
+\toprule
+& \textbf{Simple} & \textbf{Complexe} & \textbf{Non couverte} & \textbf{Total} \\
+\midrule
+Développement & 60 & 60 & 60 & 180 \\
+Test & 150 & 150 & 150 & 450 \\
+\bottomrule
+\end{tabular}
+\caption{Répartition des questions (graine aléatoire 2026).}
+\label{tab:tailles}
+\end{table}
+
+Les questions SQuAD sont séparées \emph{par article} (30\,\% des articles pour le développement) afin
+qu'aucun paragraphe ne serve à la fois au réglage et au test. Les questions HotpotQA sont tirées sans
+recouvrement. Avec 150 questions par catégorie, l'intervalle de confiance à 95\,\% d'une proportion
+proche de 50\,\% a une demi-largeur d'environ 8 points par catégorie, et d'environ 4,6 points sur
+l'ensemble du test.
+
+\subsection{Format d'une question}
+Chaque question est une ligne JSON :
+\begin{small}
+\begin{verbatim}
+{"id": "hotpot:5a8b57f2...", "split": "dev", "categorie": "complexe",
+ "source": "hotpotqa", "question": "...", "reponses": ["..."],
+ "passages_gold": ["hotpot:3f2a...", "hotpot:9c1d..."],
+ "comportement_attendu": "repondre", "type_hotpot": "bridge"}
+\end{verbatim}
+\end{small}
+
+\subsection{Limites connues du benchmark}
+\begin{itemize}
+\item Certaines questions de SQuAD sont formulées pour un paragraphe précis et deviennent floues dans un
+grand corpus (par exemple « What was the source of the mistake? »). Elles pénalisent toutes les
+stratégies de la même manière, mais abaissent les scores absolus.
+\item Une question « non couverte » l'est par rapport à son paragraphe d'origine ; il est possible,
+quoique rare, qu'un autre passage ou la connaissance interne du modèle contienne une réponse.
+\item Certaines réponses de référence de HotpotQA sont bruitées (par exemple « Mary Harron (born January
+12, 1953) ») ; le F1 atténue ce problème sans le supprimer.
+\item Les données sont en anglais et relèvent de la culture générale. La généralisation à un corpus
+spécialisé (QR4) devra être testée séparément.
+\end{itemize}
+
+%======================================================================
+\section{Systèmes comparés}\label{sec:systemes}
+%======================================================================
+
+\subsection{Stratégies fixes (références)}
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{l l c Y}
+\toprule
+\textbf{Code} & \textbf{Modèle} & \textbf{Passages} & \textbf{Rôle} \\
+\midrule
+A & Grand & 0 & Baseline A du cahier des charges : le modèle puissant répond seul \\
+B & Grand & 3 & \textbf{Référence principale} : RAG systématique avec le grand modèle \\
+C & Petit & 0 & Baseline C du cahier des charges : le petit modèle répond seul \\
+D & Petit & 3 & RAG systématique avec le petit modèle \\
+\bottomrule
+\end{tabularx}
+\caption{Stratégies fixes. B correspond à la configuration « tout au maximum » qu'un système non
+adaptatif utiliserait par défaut ; c'est la référence des critères de succès.}
+\label{tab:strategies}
+\end{table}
+
+\subsection{Références issues de la littérature (Partie III)}
+Conformément aux conclusions du livrable L1, deux références supplémentaires seront ajoutées :
+\begin{itemize}
+\item un \textbf{routeur fondé sur la seule question} (classifieur léger, par exemple TF-IDF + régression
+logistique), qui sert de contrôle pour vérifier que les signaux plus coûteux apportent réellement
+quelque chose ;
+\item une \textbf{réimplémentation simplifiée d'Adaptive-RAG}, avec un classifieur de complexité qui
+choisit entre 0 passage, 3 passages, ou une recherche complémentaire de 6 passages.
+\end{itemize}
+
+\subsection{Espace de décision de la méthode adaptative (Partie IV)}
+Pour chaque question, la politique choisit une action parmi :
+\{petit, grand\} $\times$ \{aucune recherche, $k=3$, recherche complémentaire $k=6$\} $\times$
+\{répondre, s'abstenir\}. Le coût de calcul de ses propres signaux (embeddings, scores, éventuelle
+génération préalable) est inclus dans la latence mesurée.
+
+%======================================================================
+\section{Protocole d'exécution}\label{sec:execution}
+%======================================================================
+
+\begin{itemize}
+\item \textbf{Prompts figés} (annexe~\ref{ann:prompts}), identiques pour tous les systèmes, avec une
+consigne d'abstention explicite : répondre exactement \texttt{UNANSWERABLE} si la réponse est inconnue.
+\item \textbf{Génération} gloutonne (température 0), au plus 32 tokens, avec le gabarit de conversation
+de chaque modèle. Les sorties sont donc déterministes.
+\item \textbf{Modèles préchargés} en mémoire. Trois requêtes de chauffe sont exécutées et ignorées avant
+chaque stratégie.
+\item \textbf{Ordre des questions} mélangé avec une graine fixe, identique pour toutes les stratégies.
+\item \textbf{Latence} mesurée de bout en bout avec une horloge monotone : calcul des signaux, recherche
+documentaire et génération.
+\item \textbf{Journalisation} de chaque réponse en JSONL : sortie brute, passages utilisés, latence,
+tokens, note.
+\item \textbf{Répétitions} : les sorties étant déterministes, la qualité est mesurée une fois ; la
+latence de l'évaluation finale est mesurée sur 3 passages complets, et c'est la médiane par question
+qui est retenue.
+\end{itemize}
+
+%======================================================================
+\section{Métriques}\label{sec:metriques}
+%======================================================================
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\textwidth}{l l Y}
+\toprule
+\textbf{Dimension} & \textbf{Métrique} & \textbf{Définition} \\
+\midrule
+Qualité & F1, exact match & Normalisation officielle de SQuAD ; maximum sur les réponses de référence \\
+Qualité & \textbf{Score global} & Moyenne sur toutes les questions : F1 si une réponse est attendue ; 1 en cas d'abstention et 0 sinon pour une question non couverte \\
+Abstention & Couverture & Part des questions auxquelles le système répond \\
+Abstention & Risque & Part d'erreurs parmi les réponses émises (correcte si F1 $\geq$ 0,5) \\
+Recherche & Rappel@$k$ & 1 si tous les passages justificatifs sont parmi les $k$ passages récupérés \\
+Efficacité & Latence & Moyenne, médiane et 95\textsuperscript{e} centile (P95), en secondes \\
+Efficacité & Tokens & Tokens du prompt et tokens générés, par question \\
+Efficacité & Mémoire & Pic de mémoire MLX par stratégie \\
+Énergie & Joules / question & Puissance CPU + GPU mesurée par \texttt{powermetrics}, intégrée sur la durée de la série, après soustraction de la consommation au repos \\
+\bottomrule
+\end{tabularx}
+\caption{Métriques du protocole.}
+\label{tab:metriques}
+\end{table}
+
+\paragraph{Énergie.} Conformément au cahier des charges, l'énergie n'est rapportée que si la mesure
+\texttt{powermetrics} a effectivement été réalisée. Sinon, latence, tokens et mémoire sont rapportés
+comme indicateurs indirects, sans être convertis en joules.
+
+%======================================================================
+\section{Analyse statistique}\label{sec:stats}
+%======================================================================
+
+\begin{itemize}
+\item \textbf{Intervalles de confiance} à 95\,\% par bootstrap (10\,000 rééchantillonnages des
+questions).
+\item \textbf{Comparaisons appariées} : les différences entre systèmes sont calculées question par
+question, puis rééchantillonnées ensemble (bootstrap apparié), car tous les systèmes répondent aux
+mêmes questions.
+\item \textbf{Résultats par catégorie} systématiquement rapportés en plus de la moyenne globale.
+\item \textbf{Courbes qualité--coût} : score global en fonction de la latence moyenne, pour toutes les
+stratégies et pour plusieurs réglages de la méthode adaptative.
+\end{itemize}
+
+%======================================================================
+\section{Critères de succès (pré-enregistrés)}\label{sec:succes}
+%======================================================================
+
+\begin{center}
+\fcolorbox{teal!60!black}{teal!5}{\parbox{0.92\textwidth}{
+\textbf{Critère principal.} Sur le jeu de test, par rapport à la stratégie B (grand modèle + RAG) :
+\begin{enumerate}[label=(\roman*)]
+\item la latence moyenne par question est réduite d'\textbf{au moins 20\,\%} ;
+\item la perte de score global est d'\textbf{au plus 2 points}, en estimation ponctuelle.
+\end{enumerate}
+La \emph{non-infériorité} n'est revendiquée que si la borne supérieure de l'intervalle de confiance
+à 95\,\% de la perte est elle-même inférieure à 2 points.}}
+\end{center}
+
+\paragraph{Critères secondaires.}
+\begin{itemize}
+\item \textbf{Fiabilité (QR2)} : à couverture égale, le risque de la méthode adaptative est inférieur à
+celui de B ; à défaut, la méthode atteint une meilleure couverture à risque égal.
+\item \textbf{Contrôle (L1)} : la méthode fait mieux que le routeur fondé sur la seule question. Sinon,
+les signaux plus coûteux ne sont pas justifiés, et ce constat sera rapporté.
+\item \textbf{Robustesse (QR4)} : aucune catégorie ne perd plus de 5 points par rapport à B. Toute
+catégorie qui dépasse ce seuil sera signalée explicitement.
+\end{itemize}
+
+\paragraph{Résultat négatif.} Si le critère principal n'est pas atteint, le résultat sera rapporté tel
+quel, avec l'analyse des catégories et des signaux responsables. Le cahier des charges rappelle qu'un
+résultat négatif bien établi reste informatif.
+
+%======================================================================
+\section{Pilote}\label{sec:pilote}
+%======================================================================
+
+\paragraph{Déroulement.} Le pilote a exécuté les quatre stratégies fixes sur les 180 questions du jeu de
+\emph{développement} (le jeu de test n'a pas été lu), en une passe, le 18 octobre 2026. Il a duré
+351~s au total, chargement des modèles et calcul des embeddings du corpus compris. Les sorties brutes
+sont dans \texttt{results/pilote/sorties.jsonl} et le résumé dans \texttt{results/pilote/resume.json}.
+
+\begin{table}[H]
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{l c c c c c c c}
+\toprule
+\textbf{Stratégie} & \textbf{Score} & \textbf{IC 95\,\%} & \textbf{Couv.} & \textbf{Risque} & \textbf{Lat. moy.} & \textbf{P95} & \textbf{Tokens} \\
+\midrule
+A -- grand, sans RAG & 0,313 & [0,249 ; 0,377] & 0,31 & 0,82 & 0,25 s & 0,43 s & 62 \\
+B -- grand + RAG     & \textbf{0,424} & [0,355 ; 0,493] & 0,56 & 0,53 & 0,99 s & 1,55 s & 579 \\
+C -- petit, sans RAG & 0,233 & [0,175 ; 0,295] & 0,46 & 0,93 & 0,13 s & 0,22 s & 84 \\
+D -- petit + RAG     & 0,298 & [0,235 ; 0,363] & 0,78 & 0,71 & 0,39 s & 0,59 s & 601 \\
+\midrule
+\textit{Oracle} & \textit{0,623} & -- & -- & -- & \textit{0,30 s} & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{Résultats du pilote (jeu de développement, 180 questions). Oracle : stratégie la moins coûteuse donnant le meilleur score pour chaque question. Couverture et
+risque : voir tableau~\ref{tab:metriques}. Pic de mémoire MLX du processus, les deux modèles étant chargés :
+3,4 à 4,1~Go selon la stratégie.}
+\label{tab:pilote}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Score global par catégorie} & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} \\
+\midrule
+Simple       & 0,07 & \textbf{0,45} & 0,05 & 0,33 \\
+Complexe     & 0,09 & 0,27 & 0,07 & \textbf{0,31} \\
+Non couverte & \textbf{0,78} & 0,55 & 0,58 & 0,25 \\
+\bottomrule
+\end{tabular}
+\hspace{1em}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Rappel de la recherche} & \textbf{@1} & \textbf{@3} & \textbf{@6} & \textbf{@10} \\
+\midrule
+Simple       & 0,48 & 0,60 & 0,70 & 0,77 \\
+Complexe     & 0,00 & 0,22 & 0,35 & 0,45 \\
+\bottomrule
+\end{tabular}
+\caption{En haut : score global par catégorie (60 questions chacune). En bas : rappel de la
+recherche documentaire seule (pour une question complexe, les deux passages justificatifs doivent
+être récupérés).}
+\label{tab:pilote-cat}
+\end{table}
+
+\paragraph{Enseignements.}
+\begin{enumerate}
+\item \textbf{La chaîne complète fonctionne} : construction du benchmark, recherche, génération,
+notation et journalisation. Les sorties sont déterministes.
+\item \textbf{L'écart de coût entre stratégies est important} : B est 7,8 fois plus lente que C et
+consomme 7 fois plus de tokens. Le critère principal impose une latence moyenne inférieure à 0,79~s,
+contre 0,99~s pour B.
+\item \textbf{Aucune stratégie fixe n'est la meilleure partout} : B l'emporte sur les questions simples,
+D sur les complexes et A sur les non couvertes. Le routeur \emph{oracle} atteint 0,62 pour 0,30~s par
+question. C'est une borne théorique, inatteignable en pratique, mais elle montre une marge réelle pour
+une politique adaptative.
+\item \textbf{L'abstention laissée au modèle est mal calibrée} : le petit modèle avec RAG répond presque
+toujours (couverture 0,78, risque 0,71), tandis que le grand modèle sans RAG s'abstient sur 69\,\% des
+questions. Cela justifie de confier la décision d'abstention à la politique (QR2), plutôt qu'au seul
+prompt.
+\item \textbf{La recherche documentaire est le maillon faible pour les questions complexes} : les deux
+passages justificatifs ne sont récupérés ensemble que dans 22\,\% des cas avec $k=3$.
+\item \textbf{Le coût de calcul est faible} : une passe complète des quatre stratégies sur le jeu de
+test est estimée à environ 15 minutes. Trois répétitions pour la latence sont donc réalistes.
+\item \textbf{L'énergie n'a pas été mesurée} pendant le pilote : \texttt{powermetrics} exige les droits
+administrateur. La mesure sera faite lors de l'évaluation finale.
+\end{enumerate}
+
+\paragraph{Ajustement prévu avant le gel.} Seul le choix de la méthode de recherche reste ouvert. Avant
+de créer l'étiquette \texttt{protocole-v1.0}, on comparera \emph{sur le jeu de développement
+uniquement} la recherche dense actuelle, une recherche lexicale BM25 et une combinaison des deux.
+Le critère retenu est le rappel@3, à coût comparable. La méthode choisie sera ensuite figée pour
+toutes les stratégies.
+
+%======================================================================
+\section{Gel du protocole}\label{sec:gel}
+%======================================================================
+
+Avant l'évaluation finale :
+\begin{enumerate}
+\item vérifier que \texttt{data/benchmark/MANIFEST.json} (empreintes des fichiers) n'a pas changé ;
+\item figer \texttt{configs/protocole\_v1.json} et créer l'étiquette Git \texttt{protocole-v1.0} ;
+\item développer et régler la méthode adaptative uniquement sur \texttt{dev.jsonl} ;
+\item exécuter \emph{une seule fois} toutes les méthodes sur \texttt{test.jsonl}, et publier les
+sorties brutes dans \texttt{results/}.
+\end{enumerate}
+
+\appendix
+\section{Prompts}\label{ann:prompts}
+\textbf{Sans recherche documentaire :}
+\begin{small}
+\begin{verbatim}
+Answer the question with a short phrase only. If you do not know the answer
+or it cannot be determined, reply exactly: UNANSWERABLE.
+
+Question: {question}
+Answer:
+\end{verbatim}
+\end{small}
+\textbf{Avec recherche documentaire :}
+\begin{small}
+\begin{verbatim}
+Answer the question using only the passages below, with a short phrase only.
+If the passages do not contain the answer, reply exactly: UNANSWERABLE.
+
+[1] {titre}: {texte}
+[2] ...
+
+Question: {question}
+Answer:
+\end{verbatim}
+\end{small}
+
+\section{Reproduire}\label{ann:reproduire}
+\begin{small}
+\begin{verbatim}
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python bench/build_benchmark.py          # télécharge, vérifie, construit
+python bench/check_env.py                # relève l'environnement
+HF_HUB_OFFLINE=1 python bench/run_pilot.py   # pilote (jeu de développement)
+\end{verbatim}
+\end{small}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

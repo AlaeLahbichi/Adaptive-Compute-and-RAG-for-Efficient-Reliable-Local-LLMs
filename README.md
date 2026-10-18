@@ -15,7 +15,7 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | Partie | Contenu | Statut |
 |---|---|---|
 | **I. État de l'art** | Revue de littérature, tableau de lecture, positionnement | ✅ v0.1 (pré-analyse à partir des résumés) |
-| II. Benchmark & protocole | Jeu de questions, métriques, critères de succès | ⬜ à venir |
+| **II. Benchmark & protocole** | Jeu de questions, métriques, critères de succès, pilote | ✅ v1.0-pilote (gel après choix de la recherche) |
 | III. Baselines | Grand modèle seul, RAG systématique, petit modèle seul | ⬜ à venir |
 | IV. Politique adaptative | Routeur conjoint modèle × RAG × abstention | ⬜ à venir |
 | V. Expériences & ablations | Comparaisons, analyse par catégorie | ⬜ à venir |
@@ -41,9 +41,45 @@ resume/
 
 > ⚠️ La version v0.1 a été rédigée à partir des résumés des articles. Les lectures complètes restent à faire avant toute réutilisation dans un article.
 
-### Recompiler le PDF
+## Partie II : Benchmark et protocole
+
+```
+livrable/L2_cahier_experimental.pdf   # Livrable L2 : cahier expérimental (9 p.)
+configs/protocole_v1.json             # Tous les paramètres figés du protocole
+bench/
+├── build_benchmark.py   # Construit le corpus et les questions dev/test depuis SQuAD 2.0 et HotpotQA
+├── retrieval.py         # Recherche documentaire (embeddings MiniLM + similarité cosinus)
+├── generation.py        # Génération locale avec MLX et prompts figés
+├── metrics.py           # F1, exact match, abstention (couverture/risque), bootstrap
+├── check_env.py         # Relevé du matériel, des paquets et des révisions de modèles
+├── run_pilot.py         # Pilote : stratégies fixes A–D sur le jeu de développement
+└── common.py            # Chemins et utilitaires partagés
+data/
+├── benchmark/           # corpus.jsonl (3 293 passages), dev.jsonl (180), test.jsonl (450), MANIFEST.json
+└── LICENCE_DONNEES.md   # Données dérivées de SQuAD 2.0 et HotpotQA (CC BY-SA 4.0)
+results/pilote/          # Sorties brutes et résumé du pilote
+```
+
+**Résultats du pilote (jeu de développement, 180 questions) :**
+
+| Stratégie | Score global | Latence moyenne | Tokens |
+|---|---|---|---|
+| A – grand modèle, sans RAG | 0,313 | 0,25 s | 62 |
+| B – grand modèle + RAG (référence) | 0,424 | 0,99 s | 579 |
+| C – petit modèle, sans RAG | 0,233 | 0,13 s | 84 |
+| D – petit modèle + RAG | 0,298 | 0,39 s | 601 |
+| *Oracle (meilleur choix par question)* | *0,623* | *0,30 s* | – |
+
+Aucune stratégie fixe n'est la meilleure sur toutes les catégories : une politique adaptative a une marge réelle.
+
+**Modèles utilisés** (exécutés localement avec MLX sur Apple M3 Pro, 18 Go) : Qwen2.5-1.5B-Instruct et Qwen3-4B-Instruct-2507, quantifiés en 4 bits.
+
+## Reproduire
 
 ```bash
-cd livrable
-latexmk -pdf L1_etat_de_l_art.tex
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python bench/build_benchmark.py              # télécharge les sources, vérifie leur empreinte, construit le benchmark
+HF_HUB_OFFLINE=1 python bench/run_pilot.py   # pilote sur le jeu de développement
+cd livrable && latexmk -pdf L2_cahier_experimental.tex
 ```
