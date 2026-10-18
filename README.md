@@ -19,7 +19,7 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | **III. Méthodes de référence** | Choix de la recherche, stratégies fixes A–F, routeurs R1 et R2 | ✅ |
 | **IV. Politique adaptative** | Routeur conjoint modèle × RAG × abstention | ✅ gelée (`politique-v1.0`) |
 | **V. Évaluation finale** | Test unique, verdict, ablations, énergie | ✅ (critère principal non atteint) |
-| **VI. Article** | Article final, points faibles et améliorations | ✅ `livrable/L6_article_final.pdf` |
+| **VI. Article** | Article final, points faibles et améliorations | ✅ `article/L6_article_final.pdf` |
 
 ## Partie I : État de l'art
 
@@ -140,6 +140,16 @@ results/partie5/        # Sorties brutes des 3 passes, énergie, evaluation_fina
 | *Oracle* | *0,797* | *0,36 s* | – |
 
 **Verdict :** qualité au niveau de B (non-infériorité démontrée, IC 95 % de la perte [−4,1 ; +1,6] pts), moins d'erreurs, et meilleure que R1 et R2 ; mais la latence ne baisse que de 10 % au lieu de 20 % : **le critère de succès principal n'est pas atteint**. Cause : le seuil d'abstention précoce, réglé sur 180 questions, se déclenche sur 25 % des questions de dev mais 15 % du test.
+
+## Partie VI : Article final
+
+```
+article/
+├── L6_article_final.pdf   # Article final (12 p.), avec une section « Points faibles et améliorations »
+├── L6_article_final.tex   # Source LaTeX autonome (compilable telle quelle, compatible Overleaf)
+├── references.bib         # Bibliographie
+└── figures/               # Figure qualité–coût du jeu de test
+```
 
 ## Reproduire
 
