@@ -19,7 +19,7 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | **III. Méthodes de référence** | Choix de la recherche, stratégies fixes A–F, routeurs R1 et R2 | ✅ |
 | **IV. Politique adaptative** | Routeur conjoint modèle × RAG × abstention | ✅ gelée (`politique-v1.0`) |
 | **V. Évaluation finale** | Test unique, verdict, ablations, énergie | ✅ (critère principal non atteint) |
-| VI. Article | Rédaction | ⬜ à venir |
+| **VI. Article** | Article final, points faibles et améliorations | ✅ `livrable/L6_article_final.pdf` |
 
 ## Partie I : État de l'art
 

@@ -1,0 +1,463 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{pifont}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,linkcolor=teal!70!black,citecolor=teal!70!black,urlcolor=teal!70!black]{hyperref}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\oui}{\textcolor{teal!70!black}{\ding{51}}}
+\newcommand{\non}{\textcolor{red!60!black}{\ding{55}}}
+\setlist{itemsep=2pt,topsep=4pt}
+
+\title{\textbf{Router par la preuve et s'abstenir à temps :\\ allocation adaptative du calcul et de la
+recherche documentaire pour des LLM locaux}\\[6pt]
+\large Une évaluation pré-enregistrée de la qualité, de la latence et de l'énergie sur matériel local}
+\author{Alae Lahbichi -- Étudiant en 5\textsuperscript{e} année IA/Data\\[2pt]
+\small\href{mailto:a.lahbichi2004@gmail.com}{\texttt{a.lahbichi2004@gmail.com}}\\
+\small Code et données : \href{https://github.com/AlaeLahbichi/Adaptive-Compute-and-RAG-for-Efficient-Reliable-Local-LLMs}{\footnotesize\texttt{github.com/AlaeLahbichi/Adaptive-Compute-and-RAG-for-Efficient-Reliable-Local-LLMs}}}
+\date{18 octobre 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Un système de questions-réponses exécuté sur une machine personnelle doit décider, pour
+chaque question, quel modèle de langage utiliser, combien de documents récupérer, et s'il vaut mieux
+s'abstenir. Ces trois décisions sont presque toujours étudiées séparément, et leur coût exprimé en prix
+d'API plutôt qu'en latence ou en énergie mesurées. Nous proposons une politique adaptative simple qui
+les prend conjointement à partir de deux signaux peu coûteux : la \emph{suffisance des preuves},
+calculée à partir du score BM25 du meilleur passage, et la \emph{confiance} du modèle, lue dans les
+probabilités des tokens générés. Nous l'évaluons sur un Apple M3 Pro avec deux modèles Qwen quantifiés
+en 4 bits (1,5 et 4 milliards de paramètres), sur un benchmark de 630 questions dérivé de SQuAD 2.0 et
+HotpotQA, avec des critères de succès fixés avant les expériences et un jeu de test utilisé une seule
+fois. Sur 450 questions de test, la politique atteint la qualité de la référence « grand modèle + RAG »
+(score 0,550 contre 0,537 ; non-infériorité démontrée), avec moins de réponses fausses (risque 0,40
+contre 0,42), et dépasse deux routeurs de la littérature fondés sur la question seule (0,489 et 0,517).
+Elle ne réduit toutefois la latence que de 10~\% et l'énergie de 9~\%, au lieu des 20~\% visés :
+\textbf{le critère principal n'est pas atteint}. L'analyse attribue cet échec au réglage d'un seuil
+d'abstention absolu sur un trop petit jeu de développement. Nous détaillons les points faibles de
+l'étude et un programme d'améliorations concret.
+
+\medskip
+\noindent\textbf{Mots-clés :} LLM locaux, routage de modèles, RAG adaptatif, abstention, efficacité
+énergétique, évaluation pré-enregistrée.
+\end{abstract}
+
+\clearpage
+\tableofcontents
+\clearpage
+
+%======================================================================
+\section{Introduction}
+%======================================================================
+
+Les modèles de langage (LLM) de quelques milliards de paramètres, quantifiés, tournent désormais sur un
+ordinateur portable. Les exécuter localement protège les données et supprime la dépendance à un service
+distant, mais chaque requête a un coût direct : temps d'attente, mémoire, énergie. La recherche
+documentaire (RAG) améliore la factualité \citep{gao2023ragsurvey}, mais elle allonge le prompt et donc
+la latence. Un grand modèle répond mieux qu'un petit, mais plus lentement. Et lorsque les documents ne
+contiennent pas la réponse, le meilleur choix est souvent de ne pas répondre \citep{wen2024abstention}.
+
+Appliquer la configuration la plus coûteuse à toutes les questions gaspille des ressources sur les
+questions faciles ; appliquer la moins coûteuse dégrade la qualité sur les questions difficiles. D'où la
+question de recherche :
+
+\begin{quote}
+\emph{Comment allouer automatiquement, et de manière mesurable, les ressources de calcul et de recherche
+documentaire à chaque requête, afin de réduire le coût d'un système LLM local sans dégrader
+significativement la qualité, la factualité et la fiabilité des réponses ?}
+\end{quote}
+
+\paragraph{Contributions.}
+\begin{enumerate}
+\item Une \textbf{politique adaptative conjointe} (modèle $\times$ nombre de passages $\times$ abstention),
+fondée sur deux signaux quasi gratuits et interprétables : la suffisance des preuves BM25 et la
+confiance du modèle (section~\ref{sec:methode}).
+\item Un \textbf{protocole d'évaluation pré-enregistré} sur matériel local : critères de succès écrits
+avant les expériences, jeu de test utilisé une seule fois, latence mesurée sur trois passes, énergie
+mesurée par \texttt{powermetrics} (section~\ref{sec:protocole}).
+\item Une \textbf{comparaison} avec six stratégies fixes, deux routeurs de référence inspirés de la
+littérature et un oracle (section~\ref{sec:resultats}).
+\item Un \textbf{résultat négatif documenté} : la qualité est préservée mais le gain de latence visé
+n'est pas atteint ; nous en identifions la cause et proposons des améliorations
+(sections~\ref{sec:faiblesses} et~\ref{sec:conclusion}).
+\end{enumerate}
+
+%======================================================================
+\section{Travaux connexes}
+%======================================================================
+
+\paragraph{Routage et cascades de modèles.} FrugalGPT \citep{chen2023frugalgpt} enchaîne des modèles de
+coût croissant et s'arrête dès qu'une réponse est jugée fiable ; AutoMix \citep{aggarwal2023automix} et
+\citet{yue2023cascades} escaladent selon l'auto-vérification ou la cohérence des réponses. Hybrid LLM
+\citep{ding2024hybrid} et RouteLLM \citep{ong2024routellm} prédisent, \emph{avant} la génération, si un
+petit modèle suffit. RouterBench \citep{hu2024routerbench} et la revue de \citet{varangot2025survey}
+montrent que le coût y est presque toujours un prix d'API. Plus récemment, RACER \citep{hao2026racer}
+apporte des garanties conformes au routage.
+
+\paragraph{RAG adaptatif.} \citet{mallen2022trust} montrent que la recherche est surtout utile pour les
+connaissances rares. Adaptive-RAG \citep{jeong2024adaptiverag} choisit entre aucune, une ou plusieurs
+étapes de recherche selon la complexité prédite de la question. FLARE \citep{jiang2023flare} et DRAGIN
+\citep{su2024dragin} déclenchent la recherche pendant la génération ; Self-RAG \citep{asai2023selfrag} et
+CRAG \citep{yan2024crag} évaluent la pertinence des documents récupérés. \citet{moskvoretskii2025adaptive}
+montrent que des signaux d'incertitude simples rivalisent avec des pipelines complexes.
+RAGRouter-Bench \citep{wang2026ragrouterbench} et Self-Routing RAG \citep{wu2025srrag} routent entre
+paradigmes de RAG.
+
+\paragraph{Incertitude et abstention.} Les probabilités internes des modèles sont informatives
+\citep{kadavath2022know} ; l'entropie sémantique \citep{kuhn2023semantic} et SelfCheckGPT
+\citep{manakul2023selfcheckgpt} exploitent la cohérence entre échantillons, au prix de plusieurs
+générations. \citet{kamath2020selective} formalisent la réponse sélective et ses métriques de couverture
+et de risque, que nous reprenons.
+
+\paragraph{Énergie.} \citet{samsi2023watts} et \citet{luccioni2024power} mesurent l'énergie de
+l'inférence sur GPU de centre de données ; les mesures sur matériel personnel restent rares.
+
+\paragraph{Positionnement.} Ces travaux traitent le plus souvent \emph{une} des trois décisions, et
+mesurent le coût en dollars ou en appels. Nous les traitons conjointement, avec un coût mesuré
+localement (latence, tokens, énergie), et nous reprenons comme références deux routeurs fondés sur la
+question seule, dans l'esprit de RouteLLM et d'Adaptive-RAG. \citet{li2026beyond} observent que des
+signaux extraits après la recherche surpassent la seule requête pour le routage : nos résultats vont dans
+le même sens.
+
+%======================================================================
+\section{Méthode}\label{sec:methode}
+%======================================================================
+
+\subsection{Signaux}
+
+\paragraph{Suffisance des preuves.} Pour une question $q$, la recherche BM25 ($k_1=1{,}5$, $b=0{,}75$)
+renvoie le score $S_1$ du meilleur passage. On le normalise par le score maximal atteignable :
+\[
+\text{preuve}(q) \;=\; \frac{S_1}{\sum_{t \in q} \mathrm{idf}(t)\,(k_1+1)} \;\in\; [0,1].
+\]
+Ce signal est un sous-produit de la recherche (0,2~ms) : il ne coûte rien.
+
+\paragraph{Confiance du modèle.} Pendant le décodage glouton, on relève la probabilité de chaque token
+produit, et on en retient la moyenne géométrique ou le minimum. Le décodage n'est pas modifié.
+
+\subsection{Politique}
+
+Pour chaque question :
+\begin{enumerate}
+\item \textbf{Abstention précoce} : si $\text{preuve}(q) < \tau_0$, répondre « je ne sais pas » sans
+aucune génération.
+\item \textbf{Cascade} (optionnelle) : le petit modèle répond avec 3 passages ; si sa confiance dépasse
+$\tau_p$, sa réponse est retenue.
+\item \textbf{Grand modèle} sinon, avec 6 passages si $\text{preuve}(q) < \tau_k$, 3 sinon.
+\item \textbf{Abstention finale} si la confiance du grand modèle est inférieure à $\tau_a$.
+\end{enumerate}
+Le coût de chaque étape exécutée est compté dans la latence.
+
+\subsection{Réglage}
+
+Les sorties étant déterministes, la politique se simule exactement à partir des sorties de chaque étape,
+latences comprises. Nous parcourons 246\,510 réglages sur le jeu de développement et retenons celui qui
+maximise le score global sous la contrainte d'une latence moyenne au plus égale à 78~\% de celle de la
+référence (2 points de marge par rapport au critère de 80~\%). Le réglage retenu \emph{n'utilise pas} la
+cascade : $\tau_0 = 0{,}265$, $\tau_k = 0{,}286$, et abstention finale si la probabilité minimale d'un
+token est inférieure à $\tau_a = 0{,}40$. Il a été figé et publié avant toute exécution sur le test.
+
+Dit simplement : \emph{si les documents ne contiennent manifestement pas les mots de la question,
+s'abstenir sans rien générer ; sinon, interroger le grand modèle, avec plus de passages si la preuve est
+limite, et s'abstenir s'il hésite.}
+
+%======================================================================
+\section{Protocole expérimental}\label{sec:protocole}
+%======================================================================
+
+\paragraph{Benchmark.} Un corpus de 3\,293 passages et 630 questions en trois catégories équilibrées :
+\emph{simples} (SQuAD 2.0, réponse dans un passage, \citealp{rajpurkar2018squad2}), \emph{complexes}
+(HotpotQA en configuration \emph{distractor}, deux passages à combiner, \citealp{yang2018hotpotqa}) et
+\emph{non couvertes} (questions sans réponse de SQuAD 2.0, pour lesquelles le comportement attendu est
+l'abstention). Développement : 180 questions ; test : 450 questions, jamais utilisées avant l'évaluation
+finale.
+
+\paragraph{Modèles et matériel.} Qwen2.5-1.5B-Instruct (« petit ») et Qwen3-4B-Instruct-2507
+(« grand »), quantifiés en 4 bits, exécutés avec MLX sur un Apple M3 Pro (18~Go). Décodage glouton,
+32 tokens au plus, prompts identiques avec consigne d'abstention explicite. La recherche BM25 a été
+préférée à une recherche dense (MiniLM) : rappel@3 de 0,59 contre 0,41 sur les questions avec réponse,
+pour un temps de 0,2~ms contre 7~ms.
+
+\paragraph{Méthodes comparées.}
+\begin{itemize}
+\item Six stratégies fixes : A et C (grand / petit modèle sans RAG), \textbf{B} (grand modèle avec
+3 passages, \textbf{référence}), D (petit, 3 passages), E et F (grand / petit, 6 passages).
+\item R1 : régression par stratégie sur des caractéristiques de la question, choix qui maximise le score
+prédit moins une pénalité de latence (esprit RouteLLM).
+\item R2 : classifieur de complexité de la question choisissant entre A, B et E (Adaptive-RAG simplifié).
+\item Un oracle qui choisit, pour chaque question, la stratégie fixe la meilleure puis la plus rapide.
+\end{itemize}
+
+\paragraph{Métriques.} Score global par question : F1 lexical si une réponse est attendue ; 1 si la
+méthode s'abstient sur une question non couverte, 0 sinon. Une réponse est correcte si F1 $\ge 0{,}5$.
+\emph{Couverture} : part des questions où la méthode répond ; \emph{risque} : part de réponses fausses
+parmi elles \citep{kamath2020selective}. Latence de bout en bout ; énergie de la puce (CPU + GPU + ANE)
+par \texttt{powermetrics}. Intervalles de confiance par bootstrap apparié (10\,000 tirages).
+
+\paragraph{Critères de succès pré-enregistrés.} Par rapport à B : latence moyenne réduite d'au moins
+20~\% \emph{et} perte de score global d'au plus 2~points. Critères secondaires : risque plus faible que
+B, meilleur score que R1 et R2, aucune catégorie ne perdant plus de 5~points.
+
+\paragraph{Exécution finale.} Trois passes complètes sur le test, ordre des méthodes tiré au hasard dans
+chaque passe ; latence = médiane des trois passes par question. La politique est exécutée réellement de
+bout en bout.
+
+%======================================================================
+\section{Résultats}\label{sec:resultats}
+%======================================================================
+
+Les réponses sont identiques dans les trois passes pour toutes les méthodes, et la politique exécutée
+reproduit exactement sa simulation (accord de 100~\% sur le score, latence à 0,001~s près).
+
+\subsection{Résultats principaux}
+
+\begin{table}[H]
+\centering\small\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l c c c c c c c}
+\toprule
+Méthode & Score & IC 95~\% & Écart à B & Latence & P95 & Couv. & Risque \\
+\midrule
+A -- grand, sans RAG & 0,310 & [0,269 ; 0,351] & $-22{,}7$ & 0,27~s & 0,52~s & 0,45 & 0,76 \\
+\textbf{B -- grand, 3 passages (réf.)} & \textbf{0,537} & [0,494 ; 0,581] & -- & \textbf{0,87~s} & 1,26~s & 0,73 & 0,42 \\
+C -- petit, sans RAG & 0,223 & [0,187 ; 0,261] & $-31{,}4$ & 0,13~s & 0,25~s & 0,51 & 0,93 \\
+D -- petit, 3 passages & 0,414 & [0,372 ; 0,457] & $-12{,}3$ & 0,35~s & 0,53~s & 0,88 & 0,57 \\
+E -- grand, 6 passages & 0,567 & [0,523 ; 0,610] & $+3{,}0$ & 1,57~s & 2,23~s & 0,75 & 0,40 \\
+F -- petit, 6 passages & 0,398 & [0,357 ; 0,440] & $-13{,}9$ & 0,61~s & 0,87~s & 0,94 & 0,60 \\
+\midrule
+R1 -- question seule & 0,489 & [0,445 ; 0,534] & $-4{,}7$ & 0,74~s & 1,61~s & 0,68 & 0,48 \\
+R2 -- Adaptive-RAG simplifié & 0,517 & [0,473 ; 0,561] & $-2{,}0$ & 0,82~s & 1,39~s & 0,68 & 0,44 \\
+\textbf{Politique adaptative} & \textbf{0,550} & [0,505 ; 0,594] & $\mathbf{+1{,}3}$ & \textbf{0,79~s} & 1,38~s & 0,64 & \textbf{0,40} \\
+\midrule
+\textit{Oracle} & \textit{0,797} & [0,762 ; 0,831] & $+26{,}0$ & \textit{0,36~s} & 1,09~s & 0,64 & 0,18 \\
+\bottomrule
+\end{tabular}
+\caption{Résultats sur le jeu de test (450 questions).}
+\label{tab:resultats}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\linewidth]{figures/partie5_qualite_cout.pdf}
+\caption{Compromis qualité--latence sur le test. La zone grisée correspond au critère de succès.}
+\label{fig:qualite-cout}
+\end{figure}
+
+\subsection{Verdict sur les critères pré-enregistrés}
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{Y >{\centering\arraybackslash}p{5.6cm} c}
+\toprule
+Critère & Mesure & Atteint \\
+\midrule
+Latence moyenne réduite d'au moins 20~\% & $-10{,}1$~\% & \non \\
+Perte de score $\le 2$~points & $-1{,}3$ (gain) ; IC de la perte $[-4{,}1\,;\,+1{,}6]$ & \oui \\
+\textbf{Critère principal} & & \non \\
+\midrule
+Risque inférieur à B & 0,395 contre 0,421 & \oui \\
+Meilleur que R1 et R2 & 0,550 contre 0,489 et 0,517 & \oui \\
+Aucune catégorie ne perd plus de 5~points & simple $-7{,}6$ ; complexe $-3{,}3$ ; non couverte $+14{,}7$ & \non \\
+\bottomrule
+\end{tabularx}
+\caption{Verdict sur le jeu de test.}
+\label{tab:verdict}
+\end{table}
+
+\subsection{Ablations}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l c c}
+\toprule
+Variante (réglée sur le développement) & Score & Latence \\
+\midrule
+\textbf{Politique complète} & \textbf{0,550} & 0,79~s \\
+Sans recherche adaptative (toujours 3 passages) & 0,547 & 0,74~s \\
+Sans abstention finale & 0,547 & 0,79~s \\
+Sans abstention précoce (cascade petit $\to$ grand) & 0,464 & 0,64~s \\
+Sans aucune abstention & 0,457 & 0,64~s \\
+\bottomrule
+\end{tabular}
+\caption{Ablations sur le test.}
+\label{tab:ablations}
+\end{table}
+
+L'abstention précoce est la composante décisive ($-8{,}6$~points sans elle). La recherche adaptative et
+l'abstention finale n'apportent chacune que 0,3~point, dans le bruit statistique.
+
+\subsection{Énergie}
+
+L'énergie par question vaut 19,3~J pour B, 17,5~J pour la politique ($-9$~\%), 37,7~J pour E et 1,8~J
+pour C. La puissance appelée varie peu (16 à 26~W) : l'énergie suit la durée de calcul, donc le nombre
+de tokens traités.
+
+\subsection{Du développement au test}
+
+Sur le développement, la politique obtenait 0,552 pour $-23$~\% de latence ; sur le test, 0,550 pour
+$-10$~\%. La qualité s'est généralisée, le gain de latence non. Le seuil d'abstention précoce coupait
+25~\% des questions de développement (45/180) mais seulement 15~\% des questions de test (66/450).
+Moins d'abstentions précoces signifie plus d'appels au grand modèle, et une latence plus proche de B.
+
+%======================================================================
+\section{Discussion}
+%======================================================================
+
+\begin{enumerate}
+\item \textbf{La preuve est un meilleur signal de routage que la question.} À latence comparable, la
+politique dépasse R1 de 6~points et R2 de 3~points. Regarder ce que la recherche a trouvé renseigne
+mieux que deviner la difficulté d'après la formulation.
+\item \textbf{L'abstention rend l'adaptation rentable.} Ne pas générer sur une preuve faible économise
+du calcul et évite des erreurs : c'est la seule composante dont l'effet dépasse le bruit.
+\item \textbf{Le petit modèle n'a pas trouvé sa place.} Sa confiance ne signale ses erreurs que
+modérément (AUC 0,74 sur le développement) et chaque escalade paie deux générations : la cascade n'a
+jamais été rentable sous la contrainte de latence.
+\item \textbf{La marge reste considérable.} L'oracle atteint 0,797 en 0,36~s : les bons choix existent,
+c'est leur prédiction qui est difficile.
+\end{enumerate}
+
+%======================================================================
+\section{Points faibles et améliorations}\label{sec:faiblesses}
+%======================================================================
+
+Cette section recense les faiblesses de l'étude, de la plus importante à la moins importante, et pour
+chacune l'amélioration proposée. Le tableau~\ref{tab:faiblesses} en fait la synthèse.
+
+\subsection{Faiblesses de la méthode}
+
+\paragraph{F1 -- Seuils absolus réglés sur un petit échantillon.} C'est la cause directe de l'échec du
+critère principal. Un seuil sur une valeur absolue de la preuve, réglé sur 60 questions par catégorie,
+ne déclenche pas la même proportion d'abstentions sur une autre distribution de questions. La
+validation croisée, faite sur le même petit échantillon, ne pouvait pas le révéler.
+\emph{Améliorations :} (i) exprimer les seuils comme des \emph{quantiles} ou un \emph{budget} (« s'abstenir
+sur les $x$~\% de questions aux preuves les plus faibles »), ce qui garantit le taux d'abstention, donc
+la latence ; (ii) calibrer les seuils avec une méthode conforme, qui donne des garanties de risque sans
+hypothèse sur la distribution \citep{hao2026racer} ; (iii) agrandir le jeu de réglage à au moins
+500 questions ; (iv) régler avec une marge de sécurité dérivée de la variabilité observée par bootstrap,
+et non fixe.
+
+\paragraph{F2 -- Perte sur les questions simples ($-7{,}6$~points).} L'abstention précoce touche aussi
+18 questions simples et 12 complexes sur 150 : un score BM25 faible ne signifie pas toujours que la
+réponse est absente (reformulation, synonymes). La couverture baisse de 0,73 à 0,64.
+\emph{Améliorations :} (i) remplacer la preuve lexicale par un juge de suffisance léger (re-classeur
+\emph{cross-encoder} ou petit modèle d'inférence, dans l'esprit de CRAG \citep{yan2024crag} et
+Tiny-Critic RAG \citep{wu2026tinycritic}) ; (ii) combiner preuve BM25 et preuve dense ; (iii) ajouter au
+réglage une contrainte par catégorie, de sorte qu'aucune ne perde plus de 5~points.
+
+\paragraph{F3 -- Signaux de confiance faibles.} Aucun signal ne dépasse une AUC de 0,74, et l'abstention
+finale n'apporte que 0,3~point. La probabilité des tokens d'une réponse courte informe mal sur sa
+justesse. \emph{Améliorations :} entropie sémantique \citep{kuhn2023semantic} ou cohérence entre
+quelques échantillons, réservées aux cas limites pour en contenir le coût ; sonde entraînée sur les
+états internes du modèle \citep{kadavath2022know}.
+
+\paragraph{F4 -- Recherche adaptative quasi inutile.} Choisir 6 passages au lieu de 3 ne concerne que
+6~\% des questions et n'apporte rien de mesurable ; toujours prendre 3 passages serait plus rapide
+($-15$~\%). Or les questions complexes ont un rappel@3 de seulement 0,37 : le problème n'est pas le
+\emph{nombre} de passages mais la recherche elle-même. \emph{Améliorations :} décomposition ou
+reformulation des questions multi-étapes, recherche itérative déclenchée par l'incertitude
+\citep{jiang2023flare,su2024dragin}, compression du contexte pour réduire le coût des passages
+supplémentaires \citep{arefeen2024leancontext}.
+
+\paragraph{F5 -- Le petit modèle est inutilisé.} La politique finale n'utilise qu'un seul modèle : la
+dimension « choix du modèle » de la question de recherche n'est pas réellement exploitée.
+\emph{Améliorations :} essayer un petit modèle plus performant ou spécialisé en extraction, ou l'employer
+pour un rôle moins exigeant (vérification, reformulation de requête) ; décodage spéculatif, où le petit
+modèle accélère le grand sans changer ses réponses.
+
+\paragraph{F6 -- Latence de queue dégradée.} La latence P95 de la politique (1,38~s) dépasse celle de B
+(1,26~s) à cause des réponses à 6 passages. \emph{Amélioration :} inclure le P95 dans l'objectif de
+réglage, ou plafonner le contexte.
+
+\paragraph{F7 -- Écart à l'oracle de 25~points.} \emph{Amélioration :} un routeur appris combinant
+caractéristiques de la question, preuve et confiance, entraîné sur un jeu bien plus grand que
+180 questions.
+
+\subsection{Faiblesses du protocole}
+
+\paragraph{F8 -- Benchmark construit et restreint.} Questions en anglais tirées de SQuAD 2.0 et
+HotpotQA, corpus fermé de 3\,293 passages ; les questions non couvertes sont des questions adverses de
+SQuAD 2.0, rédigées pour ressembler aux passages, ce qui n'est pas représentatif de l'usage réel ; la
+catégorie des questions ambiguës, prévue au protocole, n'a pas été annotée.
+\emph{Améliorations :} ajouter MuSiQue \citep{trivedi2022musique} et CRAG \citep{yang2024cragbench},
+un corpus réel en français, et annoter au moins 50 questions ambiguës.
+
+\paragraph{F9 -- Métrique lexicale.} Le F1 pénalise les réponses correctes formulées autrement (paraphrase,
+synonyme, date écrite autrement). \emph{Amélioration :} juge sémantique (modèle d'inférence
+ou LLM juge), validé sur un échantillon annoté à la main.
+
+\paragraph{F10 -- Puissance statistique limitée.} Avec 450 questions, l'intervalle de confiance du score
+est large d'environ $\pm 4{,}4$~points : un écart de 2~points, le seuil du critère, n'est pas
+détectable avec certitude. \emph{Amélioration :} jeu de test d'au moins 1\,500 questions.
+
+\paragraph{F11 -- Matériel et mesure uniques.} Un seul appareil (M3 Pro, MLX, 4 bits) ; l'énergie est
+celle de la puce, pas la consommation murale. \emph{Améliorations :} répliquer sur GPU NVIDIA et avec
+\texttt{llama.cpp}, mesurer au wattmètre, rapporter la mémoire.
+
+\paragraph{F12 -- Conception explorée sur le développement.} Deux conceptions ont été essayées avant de
+figer la politique ; c'est documenté, mais cela augmente le risque de sur-ajustement au développement.
+\emph{Amélioration :} pré-enregistrer aussi la \emph{famille} de politiques, et pas seulement les
+critères. Toute amélioration devra être évaluée sur un \textbf{nouveau} jeu de test : celui-ci est
+désormais consommé.
+
+\begin{table}[H]
+\centering\small
+\begin{tabularx}{\linewidth}{c Y Y c}
+\toprule
+& Faiblesse & Amélioration principale & Priorité \\
+\midrule
+F1 & Seuils absolus, petit jeu de réglage & Seuils en quantiles / budget, calibration conforme, $\ge 500$ questions & Haute \\
+F2 & Perte sur les questions simples & Juge de suffisance léger, contrainte par catégorie & Haute \\
+F10 & Puissance statistique & Test $\ge 1\,500$ questions & Haute \\
+F3 & Signaux de confiance faibles & Cohérence entre échantillons sur les cas limites & Moyenne \\
+F4 & Recherche adaptative inutile & Décomposition des questions multi-étapes & Moyenne \\
+F8 & Benchmark restreint & MuSiQue, CRAG, corpus français, questions ambiguës & Moyenne \\
+F9 & Métrique lexicale & Juge sémantique validé & Moyenne \\
+F5 & Petit modèle inutilisé & Autre petit modèle, décodage spéculatif & Moyenne \\
+F6 & Latence P95 & P95 dans l'objectif de réglage & Basse \\
+F7 & Écart à l'oracle & Routeur appris multi-signaux & Basse \\
+F11 & Matériel unique & Réplication GPU, wattmètre & Basse \\
+F12 & Exploration sur le développement & Pré-enregistrer la famille de politiques & Basse \\
+\bottomrule
+\end{tabularx}
+\caption{Synthèse des points faibles et des améliorations.}
+\label{tab:faiblesses}
+\end{table}
+
+%======================================================================
+\section{Conclusion}\label{sec:conclusion}
+%======================================================================
+
+Nous avons évalué, sur une machine personnelle et selon des critères fixés à l'avance, une politique
+qui décide conjointement du modèle, du nombre de passages et de l'abstention. Elle préserve la qualité
+de la configuration de référence, fait moins d'erreurs et dépasse deux routeurs fondés sur la question
+seule ; mais elle ne réduit la latence que de 10~\% et l'énergie de 9~\%, au lieu des 20~\% visés.
+L'hypothèse principale est donc rejetée dans sa forme pré-enregistrée.
+
+Deux enseignements dépassent ce résultat : sur machine locale, \emph{la qualité des preuves récupérées
+est un signal de routage plus utile que la question elle-même}, et \emph{savoir s'abstenir est ce qui
+permet d'économiser sans dégrader la fiabilité}. La prochaine étape est de rendre ce levier stable :
+exprimer l'abstention comme un budget calibré plutôt qu'un seuil absolu, mieux juger la suffisance des
+preuves, et valider le tout sur un jeu de test plus grand et neuf.
+
+\paragraph{Reproductibilité.} Code, benchmark, configurations figées (étiquettes \texttt{protocole-v1.0}
+et \texttt{politique-v1.0}), sorties brutes des trois passes et mesures d'énergie sont publiés dans le
+dépôt indiqué en première page.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
