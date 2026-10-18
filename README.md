@@ -17,7 +17,7 @@ Pour chaque question, le système doit choisir entre trois options : un modèle 
 | **I. État de l'art** | Revue de littérature, tableau de lecture, positionnement | ✅ v0.1 (pré-analyse à partir des résumés) |
 | **II. Benchmark & protocole** | Jeu de questions, métriques, critères de succès, pilote | ✅ gelé (`protocole-v1.0`) |
 | **III. Méthodes de référence** | Choix de la recherche, stratégies fixes A–F, routeurs R1 et R2 | ✅ |
-| IV. Politique adaptative | Routeur conjoint modèle × RAG × abstention | ⬜ à venir |
+| **IV. Politique adaptative** | Routeur conjoint modèle × RAG × abstention | ✅ gelée (`politique-v1.0`) |
 | V. Expériences & ablations | Comparaisons, analyse par catégorie | ⬜ à venir |
 | VI. Article | Rédaction | ⬜ à venir |
 
@@ -99,6 +99,27 @@ results/partie3/           # Comparaison des recherches, sorties des stratégies
 - Aucun routeur fondé sur la seule question ne satisfait le critère de succès : la méthode adaptative devra utiliser d'autres signaux (qualité des preuves, incertitude du modèle).
 
 **Modèles utilisés** (exécutés localement avec MLX sur Apple M3 Pro, 18 Go) : Qwen2.5-1.5B-Instruct et Qwen3-4B-Instruct-2507, quantifiés en 4 bits.
+
+## Partie IV : Politique adaptative
+
+```
+livrable/L4_politique_adaptative.pdf   # Livrable L4 (7 p.)
+configs/politique_v1.json              # Réglage figé de la politique (seuils)
+bench/
+├── politique.py        # Signaux (preuves BM25, confiance du modèle), exécution, simulation, réglage, ablations
+└── plot_partie4.py     # Figure qualité–coût (dev ou test)
+results/partie4/        # Sorties dev avec confiance du modèle, réglage et ablations
+```
+
+**Principe :** abstention précoce si les preuves BM25 sont trop faibles → grand modèle avec 3 ou 6 passages selon la force des preuves → abstention finale si la confiance du modèle est trop basse. Réglée sur le jeu de développement sous la contrainte « latence ≤ 78 % de B ».
+
+| Méthode (dev) | Score global | Latence moyenne | Écart à B |
+|---|---|---|---|
+| B – référence | 0,541 | 0,92 s | – |
+| Politique adaptative (réglage figé) | 0,552 | 0,71 s (−23 %) | +1,1 pts |
+| Politique, estimation par validation croisée | 0,520 | −22 % | −2,1 pts |
+
+L'abstention est la composante clé : sans elle, le score tombe à 0,39.
 
 ## Reproduire
 
