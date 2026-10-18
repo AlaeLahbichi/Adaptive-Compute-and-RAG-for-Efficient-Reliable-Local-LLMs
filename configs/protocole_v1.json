@@ -1,5 +1,5 @@
 {
-  "version": "1.0-pilote",
+  "version": "1.0",
   "date": "2026-10-18",
   "graine": 2026,
   "benchmark": {
@@ -15,8 +15,15 @@
         "licence": "CC BY-SA 4.0"
       }
     },
-    "questions_par_categorie": {"dev": 60, "test": 150},
-    "categories": ["simple", "complexe", "non_couverte"],
+    "questions_par_categorie": {
+      "dev": 60,
+      "test": 150
+    },
+    "categories": [
+      "simple",
+      "complexe",
+      "non_couverte"
+    ],
     "categorie_a_annoter_manuellement": "ambigue",
     "part_articles_squad_dev": 0.3
   },
@@ -32,9 +39,15 @@
     "requetes_de_chauffe": 3
   },
   "recherche": {
-    "methode": "similarite cosinus exacte (equivalent FAISS IndexFlatIP)",
+    "methode": "bm25",
+    "justification": "meilleur rappel@3 sur le jeu de developpement (results/partie3/comparaison_recherche.json), 40 fois plus rapide que la recherche dense",
+    "parametres_bm25": {
+      "k1": 1.5,
+      "b": 0.75
+    },
     "k": 3,
-    "k_recherche_complementaire": 6
+    "k_recherche_complementaire": 6,
+    "methode_pilote": "dense (similarite cosinus exacte, MiniLM)"
   },
   "abstention": {
     "marqueur": "UNANSWERABLE"
@@ -45,14 +58,36 @@
     "niveau_confiance": 0.95
   },
   "strategies_fixes": {
-    "A_grand_sans_rag": {"modele": "grand", "k": 0},
-    "B_grand_rag": {"modele": "grand", "k": 3},
-    "C_petit_sans_rag": {"modele": "petit", "k": 0},
-    "D_petit_rag": {"modele": "petit", "k": 3}
+    "A_grand_sans_rag": {
+      "modele": "grand",
+      "k": 0
+    },
+    "B_grand_rag": {
+      "modele": "grand",
+      "k": 3
+    },
+    "C_petit_sans_rag": {
+      "modele": "petit",
+      "k": 0
+    },
+    "D_petit_rag": {
+      "modele": "petit",
+      "k": 3
+    }
   },
   "reference_criteres_de_succes": "B_grand_rag",
   "criteres_de_succes": {
-    "reduction_latence_moyenne_min": 0.20,
+    "reduction_latence_moyenne_min": 0.2,
     "perte_score_global_max_points": 2.0
+  },
+  "strategies_complementaires": {
+    "E_grand_rag6": {
+      "modele": "grand",
+      "k": 6
+    },
+    "F_petit_rag6": {
+      "modele": "petit",
+      "k": 6
+    }
   }
 }
