@@ -145,7 +145,7 @@ results/partie5/        # Sorties brutes des 3 passes, énergie, evaluation_fina
 
 ```
 article/
-├── L6_article_final.pdf   # Article final (12 p.), avec une section « Points faibles et améliorations »
+├── L6_article_final.pdf   # Article final complet (19 p.) : état de l’art → protocole → pilote → références → politique → évaluation → points faibles
 ├── L6_article_final.tex   # Source LaTeX autonome (compilable telle quelle, compatible Overleaf)
 ├── references.bib         # Bibliographie
 └── figures/               # Figure qualité–coût du jeu de test
