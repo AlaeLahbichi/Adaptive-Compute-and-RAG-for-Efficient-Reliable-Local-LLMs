@@ -1,0 +1,35 @@
+{
+  "intervalle_ms": 200,
+  "puissance_repos_w": 2.16,
+  "echantillons": 1701,
+  "strategies": {
+    "A_grand_sans_rag": {
+      "duree_s": 45.5,
+      "puissance_moyenne_w": 17.14,
+      "energie_brute_j": 778.3,
+      "energie_nette_j": 679.8,
+      "joules_par_question": 3.777
+    },
+    "B_grand_rag": {
+      "duree_s": 181.1,
+      "puissance_moyenne_w": 24.8,
+      "energie_brute_j": 4495.2,
+      "energie_nette_j": 4103.7,
+      "joules_par_question": 22.798
+    },
+    "C_petit_sans_rag": {
+      "duree_s": 22.9,
+      "puissance_moyenne_w": 16.68,
+      "energie_brute_j": 382.7,
+      "energie_nette_j": 333.1,
+      "joules_par_question": 1.851
+    },
+    "D_petit_rag": {
+      "duree_s": 71.5,
+      "puissance_moyenne_w": 23.8,
+      "energie_brute_j": 1701.2,
+      "energie_nette_j": 1546.6,
+      "joules_par_question": 8.592
+    }
+  }
+}

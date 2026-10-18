@@ -87,7 +87,7 @@ Petit modèle & \texttt{mlx-community/Qwen2.5-1.5B-Instruct-4bit} (environ 1,0 G
 Grand modèle & \texttt{mlx-community/Qwen3-4B-Instruct-2507-4bit} (environ 2,5 Go en mémoire) \\
 Embeddings & \texttt{sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2} \\
 Recherche & Similarité cosinus exacte en NumPy, équivalente à un index FAISS \texttt{IndexFlatIP} \\
-Énergie & \texttt{powermetrics} (macOS), si les droits administrateur sont disponibles \\
+Énergie & \texttt{powermetrics} (macOS, droits administrateur), échantillonnage toutes les 200~ms \\
 \bottomrule
 \end{tabularx}
 \caption{Environnement d'exécution. Les révisions exactes des modèles et les versions des paquets sont
@@ -401,9 +401,30 @@ prompt.
 passages justificatifs ne sont récupérés ensemble que dans 22\,\% des cas avec $k=3$.
 \item \textbf{Le coût de calcul est faible} : une passe complète des quatre stratégies sur le jeu de
 test est estimée à environ 15 minutes. Trois répétitions pour la latence sont donc réalistes.
-\item \textbf{L'énergie n'a pas été mesurée} pendant le pilote : \texttt{powermetrics} exige les droits
-administrateur. La mesure sera faite lors de l'évaluation finale.
+\item \textbf{L'énergie suit les mêmes écarts que la latence} (tableau~\ref{tab:energie}) : une question
+coûte 22,8~J avec B contre 1,9~J avec C, soit 12 fois plus. Le RAG augmente à la fois la durée et la
+puissance moyenne (environ 24~W contre 17~W), car le traitement du long prompt sollicite davantage le GPU.
 \end{enumerate}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Stratégie} & \textbf{Durée} & \textbf{Puissance moy.} & \textbf{Énergie nette} & \textbf{J / question} \\
+\midrule
+A -- grand, sans RAG & 45,5 s  & 17,1 W & 680 J   & 3,8 \\
+B -- grand + RAG     & 181,1 s & 24,8 W & 4\,104 J & \textbf{22,8} \\
+C -- petit, sans RAG & 22,9 s  & 16,7 W & 333 J   & \textbf{1,9} \\
+D -- petit + RAG     & 71,5 s  & 23,8 W & 1\,547 J & 8,6 \\
+\bottomrule
+\end{tabular}
+\caption{Énergie mesurée par \texttt{powermetrics} (puissance CPU + GPU + ANE, échantillonnée toutes
+les 200~ms), 18 octobre 2026, jeu de développement (180 questions). Énergie nette = énergie mesurée
+moins la consommation au repos (2,2~W) sur la même durée. La fenêtre de chaque stratégie inclut ses
+3 requêtes de chauffe, ce qui surestime d'environ 2\,\% l'énergie par question. Script :
+\texttt{bench/energie.py} ; résultats : \texttt{results/pilote/energie.json}.}
+\label{tab:energie}
+\end{table}
 
 \paragraph{Ajustement prévu avant le gel.} Seul le choix de la méthode de recherche reste ouvert. Avant
 de créer l'étiquette \texttt{protocole-v1.0}, on comparera \emph{sur le jeu de développement

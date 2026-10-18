@@ -53,6 +53,7 @@ bench/
 ├── metrics.py           # F1, exact match, abstention (couverture/risque), bootstrap
 ├── check_env.py         # Relevé du matériel, des paquets et des révisions de modèles
 ├── run_pilot.py         # Pilote : stratégies fixes A–D sur le jeu de développement
+├── energie.py           # Mesure de l'énergie avec powermetrics (droits administrateur)
 └── common.py            # Chemins et utilitaires partagés
 data/
 ├── benchmark/           # corpus.jsonl (3 293 passages), dev.jsonl (180), test.jsonl (450), MANIFEST.json
@@ -62,13 +63,13 @@ results/pilote/          # Sorties brutes et résumé du pilote
 
 **Résultats du pilote (jeu de développement, 180 questions) :**
 
-| Stratégie | Score global | Latence moyenne | Tokens |
-|---|---|---|---|
-| A – grand modèle, sans RAG | 0,313 | 0,25 s | 62 |
-| B – grand modèle + RAG (référence) | 0,424 | 0,99 s | 579 |
-| C – petit modèle, sans RAG | 0,233 | 0,13 s | 84 |
-| D – petit modèle + RAG | 0,298 | 0,39 s | 601 |
-| *Oracle (meilleur choix par question)* | *0,623* | *0,30 s* | – |
+| Stratégie | Score global | Latence moyenne | Tokens | Énergie / question |
+|---|---|---|---|---|
+| A – grand modèle, sans RAG | 0,313 | 0,25 s | 62 | 3,8 J |
+| B – grand modèle + RAG (référence) | 0,424 | 0,99 s | 579 | 22,8 J |
+| C – petit modèle, sans RAG | 0,233 | 0,13 s | 84 | 1,9 J |
+| D – petit modèle + RAG | 0,298 | 0,39 s | 601 | 8,6 J |
+| *Oracle (meilleur choix par question)* | *0,623* | *0,30 s* | – | – |
 
 Aucune stratégie fixe n'est la meilleure sur toutes les catégories : une politique adaptative a une marge réelle.
 
